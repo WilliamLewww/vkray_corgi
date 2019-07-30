@@ -1005,6 +1005,12 @@ void Engine::updateUniformBuffer(uint32_t currentImage) {
 }
 
 void Engine::quit() {
+	vkDestroyBuffer(logicalDevice, positionIndexBuffer, nullptr);
+	vkFreeMemory(logicalDevice, positionIndexBufferMemory, nullptr);
+
+	vkDestroyBuffer(logicalDevice, positionVertexBuffer, nullptr);
+	vkFreeMemory(logicalDevice, positionVertexBufferMemory, nullptr);
+	
 	vkFreeCommandBuffers(logicalDevice, commandPool, commandBuffers.size(), commandBuffers.data());
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 	
