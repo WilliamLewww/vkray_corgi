@@ -4,13 +4,11 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
+#include <unordered_map>
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <set>
-#include <chrono>
-#include <array>
-#include <unordered_map>
-#include <iostream>
 
 class Engine {
 private:

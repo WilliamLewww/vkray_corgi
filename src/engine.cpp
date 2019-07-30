@@ -541,7 +541,7 @@ void Engine::initializeUniformBuffers() {
 }
 
 void Engine::initializeDescriptorPool() {
-	std::array<VkDescriptorPoolSize, 0> poolSizes = {};
+	std::vector<VkDescriptorPoolSize> poolSizes;
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
