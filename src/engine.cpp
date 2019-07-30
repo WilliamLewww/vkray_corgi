@@ -1,5 +1,3 @@
-#define STB_IMAGE_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 
@@ -20,13 +18,22 @@ const std::vector<const char*> validationLayers = {
 };
 
 std::vector<VkVertexInputBindingDescription> getBindingDescription() {
-	std::vector<VkVertexInputBindingDescription> bindingDescription(0);
+	std::vector<VkVertexInputBindingDescription> bindingDescription(1);
+
+	bindingDescription[0].binding = 0;
+	bindingDescription[0].stride = sizeof(glm::vec3);
+	bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	return bindingDescription;
 }
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
-	std::vector<VkVertexInputAttributeDescription> attributeDescriptions(0);
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions(1);
+
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[0].offset = 0;
 
 	return attributeDescriptions;
 }
@@ -529,11 +536,44 @@ void Engine::initializeCommandPool() {
 }
 
 void Engine::initializeVertexBuffer() {
-	
+	VkDeviceSize positionBufferSize = sizeof(positionVertices[0]) * positionVertices.size();
+
+	VkBuffer positionStagingBuffer;
+	VkDeviceMemory positionStagingBufferMemory;
+	createBuffer(positionBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, positionStagingBuffer, positionStagingBufferMemory);
+
+	void* positionData;
+	if (vkMapMemory(logicalDevice, positionStagingBufferMemory, 0, positionBufferSize, 0, &positionData) != VK_SUCCESS) {
+		throw std::runtime_error("failed to map memory!");
+	};
+		memcpy(positionData, positionVertices.data(), (size_t) positionBufferSize);
+	vkUnmapMemory(logicalDevice, positionStagingBufferMemory);
+
+	createBuffer(positionBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, positionVertexBuffer, positionVertexBufferMemory);
+	copyBuffer(positionStagingBuffer, positionVertexBuffer, positionBufferSize);
+
+	vkDestroyBuffer(logicalDevice, positionStagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, positionStagingBufferMemory, nullptr);
 }
 
 void Engine::initializeIndexBuffer() {
-	
+	VkDeviceSize bufferSize = sizeof(positionIndices[0]) * positionIndices.size();
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, positionIndices.data(), (size_t)bufferSize);
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, positionIndexBuffer, positionIndexBufferMemory);
+
+	copyBuffer(stagingBuffer, positionIndexBuffer, bufferSize);
+
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 }
 
 void Engine::initializeUniformBuffers() {
@@ -616,7 +656,11 @@ void Engine::initializeCommandBuffer() {
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 			VkDeviceSize offsets[] = {0};
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &positionVertexBuffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffers[i], positionIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
+			vkCmdDrawIndexed(commandBuffers[i], positionIndices.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]);
 

@@ -42,6 +42,12 @@ private:
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 
+	VkBuffer positionVertexBuffer;
+	VkDeviceMemory positionVertexBufferMemory;
+
+	VkBuffer positionIndexBuffer;
+	VkDeviceMemory positionIndexBufferMemory;
+
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
