@@ -6,6 +6,14 @@
 const int SCREENWIDTH = 1000;
 const int SCREENHEIGHT = 600;
 
+const std::vector<glm::vec3> positionVertices = {
+        {-0.5f, -0.5f, 0.0f},
+        { 0.5f, -0.5f, 0.0f},
+        { 0.0f,  0.5f, 0.0f}
+    };
+
+const std::vector<uint32_t> positionIndices = { 0, 1, 2 };
+
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char*> deviceExtensions = {
