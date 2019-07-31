@@ -67,9 +67,11 @@ private:
 	void initializeSwapChain();
 	void initializeImageViews();
 	void initializeRenderPass();
+
 	void initializeDescriptorSetLayout();
 	void initializeGraphicsPipeline();
 	void initializeCommandPool();
+
 	void initializeDepthResources();
 	void initializeFramebuffers();
 

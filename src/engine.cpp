@@ -54,9 +54,11 @@ void Engine::initialize() {
 	initializeSwapChain();
 	initializeImageViews();
 	initializeRenderPass();
+	
 	initializeDescriptorSetLayout();
 	initializeGraphicsPipeline();
 	initializeCommandPool();
+
 	initializeDepthResources();
 	initializeFramebuffers();
 
