@@ -864,14 +864,32 @@ void Engine::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
 		throw std::invalid_argument("unsupported layout transition!");
 	}
 
-	vkCmdPipelineBarrier(
-		commandBuffer,
-		sourceStage, destinationStage,
-		0,
-		0, nullptr,
-		0, nullptr,
-		1, &barrier
-	);
+	VkGeometryAABBNV geometryAABB = {};
+	geometryAABB.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+	geometryAABB.pNext = NULL;
+	geometryAABB.aabbData = VK_NULL_HANDLE;
+
+	VkGeometryTrianglesNV geometryTriangle = {};
+	geometryTriangle.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
+	geometryTriangle.pNext = NULL;
+	geometryTriangle.vertexData = positionVertexBuffer;
+	geometryTriangle.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+	geometryTriangle.indexData = positionIndexBuffer;
+	geometryTriangle.indexType = VK_INDEX_TYPE_UINT32;
+	geometryTriangle.transformData = VK_NULL_HANDLE;
+
+	VkGeometryDataNV geometryData = {};
+	geometryData.triangles = geometryTriangle;
+	geometryData.aabbs = geometryAABB;
+
+	VkGeometryNV geometry = {};
+	geometry.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
+	geometry.pNext = NULL;
+	geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
+	geometry.geometry = geometryData;
+	geometry.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
+
+	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 	endSingleTimeCommands(commandBuffer);
 }
@@ -888,11 +906,7 @@ void Engine::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 	region.imageSubresource.baseArrayLayer = 0;
 	region.imageSubresource.layerCount = 1;
 	region.imageOffset = {0, 0, 0};
-	region.imageExtent = {
-		width,
-		height,
-		1
-	};
+	region.imageExtent = { width, height, 1 };
 
 	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
