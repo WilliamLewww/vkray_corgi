@@ -538,15 +538,6 @@
 			}
 		},
 		{
-			"file": "src/engine.cpp",
-			"settings":
-			{
-				"buffer_size": 40791,
-				"encoding": "UTF-8",
-				"line_ending": "Windows"
-			}
-		},
-		{
 			"file": "project.sublime-project",
 			"settings":
 			{
@@ -569,6 +560,15 @@
 			"settings":
 			{
 				"buffer_size": 119,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "src/engine.cpp",
+			"settings":
+			{
+				"buffer_size": 40794,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -1186,8 +1186,8 @@
 						"selection":
 						[
 							[
-								1721,
-								1721
+								1641,
+								1641
 							]
 						],
 						"settings":
@@ -1199,53 +1199,11 @@
 						"translation.y": 597.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
 					"buffer": 2,
-					"file": "src/engine.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 40791,
-						"regions":
-						{
-							"bookmarks":
-							{
-								"flags": 144,
-								"icon": "bookmark",
-								"regions":
-								[
-									[
-										33803,
-										33803
-									]
-								],
-								"scope": "bookmarks"
-							}
-						},
-						"selection":
-						[
-							[
-								33733,
-								33733
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 11011.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
 					"file": "project.sublime-project",
 					"semi_transient": false,
 					"settings":
@@ -1274,7 +1232,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 3,
 					"file": "shaders/basic.vert",
 					"semi_transient": false,
 					"settings":
@@ -1302,7 +1260,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 5,
+					"buffer": 4,
 					"file": "shaders/basic.frag",
 					"semi_transient": false,
 					"settings":
@@ -1336,6 +1294,48 @@
 			"sheets":
 			[
 				{
+					"buffer": 5,
+					"file": "src/engine.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 40794,
+						"regions":
+						{
+							"bookmarks":
+							{
+								"flags": 144,
+								"icon": "bookmark",
+								"regions":
+								[
+									[
+										33806,
+										33806
+									]
+								],
+								"scope": "bookmarks"
+							}
+						},
+						"selection":
+						[
+							[
+								1505,
+								1505
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 132.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
 					"buffer": 6,
 					"file": "/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
 					"semi_transient": false,
@@ -1362,7 +1362,7 @@
 						"translation.y": 741.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
@@ -1800,7 +1800,7 @@
 		],
 		"width": 592.0
 	},
-	"selected_group": 0,
+	"selected_group": 1,
 	"settings":
 	{
 	},
