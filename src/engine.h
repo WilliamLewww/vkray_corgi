@@ -32,9 +32,7 @@ private:
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
-
-	uint32_t queueFamilyIndex;
-	uint32_t queuePresentIndex;
+	
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
@@ -42,6 +40,8 @@ private:
 	void initializeVulkan();
 	void initializePhysicalDevice();
 	void initializeLogicalDevice();
+
+	void renderFrame();
 
 	bool isDeviceSuitable(VkPhysicalDevice device);
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
