@@ -9,6 +9,21 @@
 #include <vector>
 #include <set>
 
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+
+    bool isComplete() {
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
+};
+
 class Engine {
 private:
 	GLFWwindow* window;
@@ -16,8 +31,6 @@ private:
 	VkSurfaceKHR surface;
 
 	VkPhysicalDevice physicalDevice;
-	std::vector<std::string> supportedExtensions;
-
 	VkDevice logicalDevice;
 
 	uint32_t queueFamilyIndex;
@@ -30,7 +43,10 @@ private:
 	void initializePhysicalDevice();
 	void initializeLogicalDevice();
 
-	bool extensionSupported(std::string extension);
+	bool isDeviceSuitable(VkPhysicalDevice device);
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 public:
 	void initialize();
 	void start();
