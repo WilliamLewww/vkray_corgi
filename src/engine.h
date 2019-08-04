@@ -9,6 +9,8 @@
 #include <vector>
 #include <set>
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 struct QueueFamilyIndices {
 	int graphicsFamily = -1;
 	int presentFamily = -1;
@@ -36,6 +38,12 @@ private:
   	VkSurfaceFormatKHR surfaceFormat = {};
   	VkPresentModeKHR presentMode = {};
 
+  	VkCommandPool commandPool[MAX_FRAMES_IN_FLIGHT];
+  	VkCommandBuffer commandBuffer[MAX_FRAMES_IN_FLIGHT];
+	VkFence fence[MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore presentCompleteSemaphore[MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore renderCompleteSemaphore[MAX_FRAMES_IN_FLIGHT];
+
 	void initializeWindow();
 	void initializeVulkan();
 	void initializePhysicalDevice(const std::vector<const char*>& extensions);
@@ -43,6 +51,7 @@ private:
 	void initializeSurfaceFormat();
 	void initializePresentMode();
 	void initializeLogicalDevice(const std::vector<const char*>& extensions);
+	void initializeCommandBuffers();
 
 	void renderFrame();
 

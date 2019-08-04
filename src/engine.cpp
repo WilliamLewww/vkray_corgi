@@ -3,8 +3,6 @@
 const int SCREENWIDTH = 1000;
 const int SCREENHEIGHT = 600;
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
 const bool enableValidationLayers = true;
 
 const std::vector<const char*> deviceExtensions = {
@@ -21,6 +19,7 @@ void Engine::initialize() {
     initializeSurfaceFormat();
     initializePresentMode();
     initializeLogicalDevice(deviceExtensions);
+    initializeCommandBuffers();
 }
 
 void Engine::initializeWindow() {
@@ -187,6 +186,43 @@ void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions)
     }
 
     vkGetDeviceQueue(logicalDevice, queueFamily, queueIndex, &queue);
+}
+
+void Engine::initializeCommandBuffers() {
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+        commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        commandPoolCreateInfo.queueFamilyIndex = queueFamily;
+        if (vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, nullptr, &commandPool[i]) != VK_SUCCESS) {
+
+        }
+
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        commandBufferAllocateInfo.commandPool = commandPool[i];
+        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocateInfo.commandBufferCount = 1;
+        if (vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer[i]) != VK_SUCCESS) {
+
+        }
+
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        if (vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence[i]) != VK_SUCCESS) {
+
+        }
+
+        VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &presentCompleteSemaphore[i]) != VK_SUCCESS) {
+
+        }
+        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &renderCompleteSemaphore[i]) != VK_SUCCESS) {
+
+        }
+    }
 }
 
 void Engine::renderFrame() {

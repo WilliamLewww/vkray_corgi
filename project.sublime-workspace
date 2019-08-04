@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"exte",
+				"extensionName\tabc"
+			],
+			[
+				"phys",
+				"physicalDevice\t(engine.h)"
+			],
+			[
 				"ray",
 				"rayTracingEnabled\tabc"
 			],
@@ -102,10 +110,6 @@
 			[
 				"pusb",
 				"push_back\tabc"
-			],
-			[
-				"exte",
-				"extensions\tabc"
 			],
 			[
 				"getColor",
@@ -510,10 +514,6 @@
 			[
 				"componentLi",
 				"componentMultiList\tabc"
-			],
-			[
-				"componentMul",
-				"componentMultiCount\tabc"
 			]
 		]
 	},
@@ -523,7 +523,7 @@
 			"file": "project.sublime-project",
 			"settings":
 			{
-				"buffer_size": 1880,
+				"buffer_size": 1878,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -532,7 +532,7 @@
 			"file": "src/engine.h",
 			"settings":
 			{
-				"buffer_size": 1233,
+				"buffer_size": 1616,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -541,8 +541,24 @@
 			"file": "src/engine.cpp",
 			"settings":
 			{
-				"buffer_size": 2263,
+				"buffer_size": 10466,
 				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/C/Users/William/Desktop/vkexamples/common/vk_context.h",
+			"settings":
+			{
+				"buffer_size": 7842,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
+			"settings":
+			{
+				"buffer_size": 49215,
 				"line_ending": "Windows"
 			}
 		}
@@ -823,12 +839,16 @@
 	],
 	"file_history":
 	[
+		"/C/Users/William/AppData/Roaming/Sublime Text 3/Packages/Terminal/Terminal.sublime-settings",
+		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.h",
+		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.cpp",
+		"/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
+		"/C/Users/William/Desktop/vkexamples/common/vk_context.h",
+		"/C/Users/William/Desktop/VkRayTutorials/Source/01_InitRaytracing/01_InitRaytracing.cpp",
 		"/C/Users/William/Desktop/rtxON-master/src/rtxApp.cpp",
 		"/C/Users/William/Desktop/rtxON-master/src/rtxApp.h",
 		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanapp.h",
 		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanapp.cpp",
-		"/C/Users/William/Desktop/vkexamples/common/vk_context.h",
-		"/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
 		"/C/Users/William/Desktop/vkray_corgi/src/engine.cpp",
 		"/C/Users/William/Desktop/rtxON-master/src/main.cpp",
 		"/C/Users/William/Desktop/VkRayTutorials/Projects/01_InitRaytracing.vcxproj",
@@ -840,9 +860,6 @@
 		"/C/Users/William/Desktop/vkexamples/VkExamples.sln",
 		"/C/Users/William/Desktop/vkexamples/VkExample1/main.cpp",
 		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.cpp",
-		"/C/Users/William/Desktop/VkRayTutorials/Source/01_InitRaytracing/01_InitRaytracing.cpp",
-		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.cpp",
-		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.h",
 		"/C/Users/William/Desktop/vkexamples/libs/glfw/include/GLFW/glfw3.h",
 		"/C/Users/William/Desktop/vkexamples/libs/gl3w/GL/gl3w.h",
 		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/RaytracingApplication.cpp",
@@ -853,7 +870,6 @@
 		"/C/Users/William/Desktop/vkray_corgi/project.sublime-project",
 		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.h",
 		"/C/Users/William/Desktop/vkray_corgi/main.cpp",
-		"/C/Users/William/AppData/Roaming/Sublime Text 3/Packages/Terminal/Terminal.sublime-settings",
 		"/C/Users/William/Desktop/vkexamples/libs/vulkannv/vulkan_raytracing.cpp",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.frag",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.vert",
@@ -970,6 +986,59 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"m_device",
+			"m_gpu",
+			"queue_info",
+			"queue_priority",
+			"queue_count",
+			"queue_index",
+			"device_extension_count",
+			"m_queueFamily",
+			"device_extensions",
+			"createLogicalDevice",
+			"presentModeArg",
+			"presentModeABC",
+			"presentMode",
+			"m_presentMode",
+			"presentMode",
+			"m_presentMode",
+			"presentMode",
+			"m_presentMode",
+			"m_surface",
+			"m_gpu",
+			"initializePresentMode",
+			"initializeSurfaceFormat",
+			"getPresentMode",
+			"m_surfaceFormat",
+			"m_surfaceFormat\\",
+			"m_surfaceFormat",
+			"m_surface",
+			"m_gpu",
+			"findSurfaceFormat",
+			"m_queueFamily",
+			"_",
+			"m_gpu",
+			"getQueueFamilly",
+			"checkDeviceExtensionSupport",
+			"isDeviceSuitable",
+			"CreateInstance",
+			"m_surface",
+			"gpu",
+			"querySwapChainSupport",
+			"gpu",
+			"checkDeviceExtensionSupport",
+			"gpu",
+			"findQueueFamilies",
+			"gpu",
+			"isDeviceSuitable",
+			"m_instance",
+			"gpu",
+			"gpu_count",
+			"gpu",
+			"gpus",
+			"m_gpu",
+			"initializePhysicalDevice",
+			"getGpu",
 			"w64",
 			"volk",
 			"vulk",
@@ -1044,60 +1113,7 @@
 			"getGpu",
 			"glfwCreateWindowSurface",
 			"IMGUI_VULKAN_DEBUG_REPORT",
-			"useDebugLayerInDebugMode",
-			"createInstance",
-			"gpu",
-			"isDeviceSuitable",
-			"findQueueFamilies",
-			"isDeviceSuitable",
-			"findQueueFamilies",
-			"QueueFamilyIndices",
-			"gpu",
-			"findQueueFamilies",
-			"isDeviceSuitable",
-			"findQueueFamilies",
-			");\n",
-			"device",
-			"checkDeviceExtensionSupport",
-			"deviceExtensions",
-			"transitionImageLayout",
-			"vkCmdPipelineBarrier",
-			"EXTENSION",
-			"extension",
-			"transform",
-			"VK_FORMAT",
-			"R32G32B32",
-			"VK_FORMAT",
-			"VK_FORMAT_",
-			"offsets",
-			"setupVulkan",
-			"1.0, 1.0",
-			"set",
-			"initializeDescriptorPool",
-			"readFile",
-			"phong",
-			"joiner",
-			"vkray-corgi",
-			"vulkan_phong",
-			"joiner->",
-			"lightObjectBufferInfo",
-			"coordinateObjectBufferInfo",
-			"*",
-			"[1]",
-			"descriptorSets",
-			"descriptorSet",
-			"descriptorWrites",
-			"1",
-			"descriptionRi",
-			"size_t",
-			"joiner->",
-			"static_cast<uint32_t>(",
-			"descriptorSets",
-			"descriptorPool",
-			"descriptorSets",
-			"joiner->",
-			"uniformObjectBuffers",
-			"descriptorSets"
+			"useDebugLayerInDebugMode"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1110,12 +1126,12 @@
 		"show_context": true,
 		"use_buffer2": true,
 		"whole_word": false,
-		"wrap": true
+		"wrap": false
 	},
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 2,
 			"sheets":
 			[
 				{
@@ -1124,15 +1140,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1880,
+						"buffer_size": 1878,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1337,
-								1337
+								1205,
+								1205
 							]
 						],
 						"settings":
@@ -1144,7 +1160,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
@@ -1153,15 +1169,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1233,
+						"buffer_size": 1616,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								766,
+								771
 							]
 						],
 						"settings":
@@ -1173,7 +1189,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
@@ -1182,15 +1198,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2263,
+						"buffer_size": 10466,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								7168,
+								7168
 							]
 						],
 						"settings":
@@ -1200,10 +1216,83 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 351.0,
+						"translation.y": 1862.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/C/Users/William/Desktop/vkexamples/common/vk_context.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7842,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5852,
+								5796
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1326.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 49215,
+						"regions":
+						{
+							"bookmarks":
+							{
+								"flags": 144,
+								"icon": "bookmark",
+								"regions":
+								[
+									[
+										12001,
+										12001
+									]
+								],
+								"scope": "bookmarks"
+							}
+						},
+						"selection":
+						[
+							[
+								16380,
+								16380
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 5863.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
 					"type": "text"
 				}
 			]
@@ -1641,7 +1730,7 @@
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
+	"side_bar_visible": false,
 	"side_bar_width": 139.0,
 	"status_bar_visible": true,
 	"template_settings":
