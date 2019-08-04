@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <set>
 
@@ -25,9 +26,17 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct Vertex {
+	glm::vec3 position;
+
+	static auto getBindingDescription();
+	static auto getAttributeDescriptions();
+};
+
 class Engine {
 private:
 	GLFWwindow* window;
+	VkAllocationCallbacks* allocator = VK_NULL_HANDLE;
 	VkInstance instance = VK_NULL_HANDLE;
 	VkSurfaceKHR surface = VK_NULL_HANDLE;
 
@@ -35,6 +44,11 @@ private:
 	VkDevice logicalDevice = VK_NULL_HANDLE;
 	VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
+
+	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
 	uint32_t queueFamily = 0;
 	VkQueue queue = VK_NULL_HANDLE;
@@ -50,6 +64,7 @@ private:
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
+	VkExtent2D framebufferSize;
 	int framebufferWidth = 0, framebufferHeight = 0;
 	uint32_t backBufferCount = 0;
 	VkImage backBuffer[MAX_POSSIBLE_BACK_BUFFERS] = {};
@@ -76,6 +91,9 @@ private:
 	void initializeDepthResources();
 	void initializeFramebuffer();
 
+	void initializeDescriptorSetLayout();
+	void initializeGraphicsPipeline(VkExtent2D framebufferSize);
+
 	void renderFrame();
 
 	bool isDeviceSuitable(const VkPhysicalDevice& device, const std::vector<const char*>& extensions);
@@ -94,6 +112,9 @@ private:
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+	std::vector<char> readFile(const std::string& filename);
+	VkShaderModule createShaderModule(const std::vector<char>& code);
 public:
 	void initialize();
 	void start();
