@@ -8,7 +8,19 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <utility>
 #include <set>
+
+#include <nv_helpers_vk/BottomLevelASGenerator.h>
+#include <nv_helpers_vk/TopLevelASGenerator.h>
+#include <nv_helpers_vk/VKHelpers.h>
+
+struct Vertex {
+	glm::vec2 pos;
+
+	static auto getBindingDescription();
+	static auto getAttributeDescriptions();
+};
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 const int MAX_POSSIBLE_BACK_BUFFERS = 16;
@@ -26,11 +38,24 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct Vertex {
-	glm::vec3 position;
+struct GeometryInstance {
+	VkBuffer vertexBuffer;
+	uint32_t vertexCount;
+	VkDeviceSize vertexOffset;
+	VkBuffer indexBuffer;
+	uint32_t indexCount;
+	VkDeviceSize indexOffset;
+	glm::mat4x4 transform;
+};
 
-	static auto getBindingDescription();
-	static auto getAttributeDescriptions();
+struct AccelerationStructure {
+	VkBuffer scratchBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory scratchMem = VK_NULL_HANDLE;
+	VkBuffer resultBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory resultMem = VK_NULL_HANDLE;
+	VkBuffer instancesBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory instancesMem = VK_NULL_HANDLE;
+	VkAccelerationStructureNV structure = VK_NULL_HANDLE;
 };
 
 class Engine {
@@ -40,15 +65,16 @@ private:
 	VkInstance instance = VK_NULL_HANDLE;
 	VkSurfaceKHR surface = VK_NULL_HANDLE;
 
+	VkPhysicalDeviceRayTracingPropertiesNV raytracingProperties = {};
+	std::vector<GeometryInstance> geometryInstances;
+	nv_helpers_vk::TopLevelASGenerator topLevelASGenerator;
+	AccelerationStructure topLevelAS;
+	std::vector<AccelerationStructure> bottomLevelAS;
+
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice = VK_NULL_HANDLE;
 	VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
-
-	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
-	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
 	uint32_t queueFamily = 0;
 	VkQueue queue = VK_NULL_HANDLE;
@@ -75,6 +101,15 @@ private:
 	VkDeviceMemory depthImageMemory = {};
 	VkImageView depthImageView = {};
 
+	uint32_t nbIndices;
+	uint32_t nbVertices;
+
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
+
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
+
 	void initializeWindow();
 	void initializeVulkan();
 	void initializePhysicalDevice(const std::vector<const char*>& extensions);
@@ -91,8 +126,18 @@ private:
 	void initializeDepthResources();
 	void initializeFramebuffer();
 
+	void initializeVertexBuffer(const std::vector<Vertex>& vertex);
+	void initializeIndexBuffer(const std::vector<uint32_t>& indices);
 	void initializeDescriptorSetLayout();
-	void initializeGraphicsPipeline(VkExtent2D framebufferSize);
+	void initializeGraphicsPipeline();
+
+	void initializeRayTracing();
+	void initializeGeometryInstances();
+
+	AccelerationStructure createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers);
+	void createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly);
+	void createAccelerationStructures();
+	void destroyAccelerationStructure(const AccelerationStructure& as);
 
 	void renderFrame();
 
@@ -115,6 +160,9 @@ private:
 
 	std::vector<char> readFile(const std::string& filename);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
+
+	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 public:
 	void initialize();
 	void start();
