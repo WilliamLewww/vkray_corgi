@@ -9,44 +9,45 @@
 #include <vector>
 #include <set>
 
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+struct QueueFamilyIndices {
+	int graphicsFamily = -1;
+	int presentFamily = -1;
+
+	bool isComplete() { return graphicsFamily >= 0 && presentFamily >= 0; }
 };
 
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 class Engine {
 private:
 	GLFWwindow* window;
-	VkInstance instance;
-	VkSurfaceKHR surface;
+	VkInstance instance = VK_NULL_HANDLE;
+	VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-	VkPhysicalDevice physicalDevice;
-	VkDevice logicalDevice;
-	
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	VkDevice logicalDevice = VK_NULL_HANDLE;
+
+	uint32_t queueFamily = 0;
+  	VkSurfaceFormatKHR surfaceFormat = {};
 
 	void initializeWindow();
 	void initializeVulkan();
-	void initializePhysicalDevice();
-	void initializeLogicalDevice();
+	void initializePhysicalDevice(const std::vector<const char*>& extensions);
+	void initializeQueueFamilly();
+	void initializeSurfaceFormat();
+	void initializeLogicalDevice(const std::vector<const char*>& extensions);
 
 	void renderFrame();
 
-	bool isDeviceSuitable(VkPhysicalDevice device);
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+	bool isDeviceSuitable(const VkPhysicalDevice& device, const std::vector<const char*>& extensions);
+	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
+	bool checkDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions);
+	SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device);
+
 public:
 	void initialize();
 	void start();
