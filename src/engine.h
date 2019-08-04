@@ -32,13 +32,16 @@ private:
 	VkDevice logicalDevice = VK_NULL_HANDLE;
 
 	uint32_t queueFamily = 0;
+	VkQueue queue = VK_NULL_HANDLE;
   	VkSurfaceFormatKHR surfaceFormat = {};
+  	VkPresentModeKHR presentMode = {};
 
 	void initializeWindow();
 	void initializeVulkan();
 	void initializePhysicalDevice(const std::vector<const char*>& extensions);
 	void initializeQueueFamilly();
 	void initializeSurfaceFormat();
+	void initializePresentMode();
 	void initializeLogicalDevice(const std::vector<const char*>& extensions);
 
 	void renderFrame();

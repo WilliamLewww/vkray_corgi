@@ -19,6 +19,7 @@ void Engine::initialize() {
     initializePhysicalDevice(deviceExtensions);
     initializeQueueFamilly();
     initializeSurfaceFormat();
+    initializePresentMode();
     initializeLogicalDevice(deviceExtensions);
 }
 
@@ -134,8 +135,58 @@ void Engine::initializeSurfaceFormat() {
     }
 }
 
-void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions) {
+void Engine::initializePresentMode() {
+    uint32_t count = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &count, nullptr);
+    std::vector<VkPresentModeKHR> presentModes(count);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &count, presentModes.data());
 
+    presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    for(const auto& presentModeOption : presentModes) {
+        if(presentModeOption == VK_PRESENT_MODE_MAILBOX_KHR) {
+            presentMode = presentModeOption;
+            break;
+        }
+
+        if(presentModeOption == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            presentMode = presentModeOption;
+        }
+    }
+}
+
+void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions) {
+    auto deviceExtensionCount = static_cast<uint32_t>(extensions.size());
+    const uint32_t queueIndex = 0;
+    const uint32_t queueCount = 1;
+    const float queuePriority[] = {1.0f};
+    VkDeviceQueueCreateInfo queueInfo[1] = {};
+    queueInfo[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueInfo[0].queueFamilyIndex = queueFamily;
+    queueInfo[0].queueCount = queueCount;
+    queueInfo[0].pQueuePriorities = queuePriority;
+    VkDeviceCreateInfo create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    create_info.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
+    create_info.pQueueCreateInfos = queueInfo;
+    create_info.enabledExtensionCount = deviceExtensionCount;
+    create_info.ppEnabledExtensionNames = extensions.data();
+
+    VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexFeatures = {};
+    descIndexFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+    VkPhysicalDeviceFeatures2 supportedFeatures = {};
+    supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    supportedFeatures.pNext = &descIndexFeatures;
+    vkGetPhysicalDeviceFeatures2(physicalDevice, &supportedFeatures);
+    create_info.pEnabledFeatures = &(supportedFeatures.features);
+    create_info.pNext = &descIndexFeatures;
+
+    // create_info.pNext = supportedFeatures.pNext;
+
+    if (vkCreateDevice(physicalDevice, &create_info, nullptr, &logicalDevice) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create a logical connection");
+    }
+
+    vkGetDeviceQueue(logicalDevice, queueFamily, queueIndex, &queue);
 }
 
 void Engine::renderFrame() {
