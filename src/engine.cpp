@@ -11,17 +11,6 @@ const std::vector<const char*> deviceExtensions = {
     VK_NV_RAY_TRACING_EXTENSION_NAME
 };
 
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f}},
-    {{0.5f, -0.5f}}, 
-    {{0.5f, 0.5f}},
-    {{-0.5f, 0.5f}}
-};
-
-const std::vector<uint32_t> indices = {
-    0, 1, 2, 2, 3, 0
-};
-
 void Engine::initialize() {
     initializeWindow();
     initializeVulkan();
@@ -38,301 +27,6 @@ void Engine::initialize() {
     initializeImageViews();
     initializeDepthResources();
     initializeFramebuffer();
-
-    nbIndices = static_cast<uint32_t>(indices.size());
-    nbVertices = static_cast<uint32_t>(vertices.size());
-    initializeVertexBuffer(vertices);
-    initializeIndexBuffer(indices);
-    initializeRayTracing();
-    initializeGeometryInstances();
-    initializeAccelerationStructures();
-    initializeRaytracingDescriptorSet();
-    initializeRaytracingPipeline();
-    initializeShaderBindingTable();
-}
-
-void Engine::initializeVertexBuffer(const std::vector<Vertex>& vertex) {
-    VkDeviceSize bufferSize = sizeof(vertex[0]) * vertex.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertex.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
-}
-
-void Engine::initializeIndexBuffer(const std::vector<uint32_t>& indices) {
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
-}
-
-void Engine::initializeRayTracing() {
-    raytracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
-    raytracingProperties.pNext = nullptr;
-    raytracingProperties.maxRecursionDepth = 0;
-    raytracingProperties.shaderGroupHandleSize = 0;
-    VkPhysicalDeviceProperties2 props;
-    props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-    props.pNext = &raytracingProperties;
-    props.properties = {};
-    vkGetPhysicalDeviceProperties2(physicalDevice, &props);
-}
-
-void Engine::initializeGeometryInstances() {
-    glm::mat4x4 mat = glm::mat4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
-    geometryInstances.push_back({vertexBuffer, nbVertices, 0, indexBuffer, nbIndices, 0, mat});
-}
-
-AccelerationStructure Engine::createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers) {
-    nv_helpers_vk::BottomLevelASGenerator bottomLevelAS;
-
-    for(const auto& buffer : vVertexBuffers) {
-        if(buffer.indexBuffer == VK_NULL_HANDLE) {
-            bottomLevelAS.AddVertexBuffer(buffer.vertexBuffer, buffer.vertexOffset, buffer.vertexCount,
-            sizeof(Vertex), VK_NULL_HANDLE, 0);
-        }
-        else {
-            bottomLevelAS.AddVertexBuffer(buffer.vertexBuffer, buffer.vertexOffset, buffer.vertexCount,
-            sizeof(Vertex), buffer.indexBuffer, buffer.indexOffset,
-            buffer.indexCount, VK_NULL_HANDLE, 0);
-        }
-    }
-
-    AccelerationStructure buffers;
-
-    buffers.structure = bottomLevelAS.CreateAccelerationStructure(logicalDevice, VK_FALSE);
-
-    VkDeviceSize scratchSizeInBytes = 0;
-    VkDeviceSize resultSizeInBytes = 0;
-    bottomLevelAS.ComputeASBufferSizes(logicalDevice, buffers.structure, &scratchSizeInBytes, &resultSizeInBytes);
-
-    nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, scratchSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &buffers.scratchBuffer, &buffers.scratchMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, resultSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &buffers.resultBuffer, &buffers.resultMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    bottomLevelAS.Generate(logicalDevice, commandBuffer, buffers.structure, buffers.scratchBuffer, 0, buffers.resultBuffer, buffers.resultMem, false, VK_NULL_HANDLE);
-
-    return buffers;
-}
-
-void Engine::createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly) {
-    if(!updateOnly) {
-        for(size_t i = 0; i < instances.size(); i++) {
-            topLevelASGenerator.AddInstance(instances[i].first, instances[i].second, static_cast<uint32_t>(i), static_cast<uint32_t>(i));
-        }
-
-        topLevelAS.structure = topLevelASGenerator.CreateAccelerationStructure(logicalDevice, VK_TRUE);
-
-        VkDeviceSize scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
-        topLevelASGenerator.ComputeASBufferSizes(logicalDevice, topLevelAS.structure, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
-
-        nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, scratchSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &topLevelAS.scratchBuffer, &topLevelAS.scratchMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, resultSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &topLevelAS.resultBuffer, &topLevelAS.resultMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, instanceDescsSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &topLevelAS.instancesBuffer, &topLevelAS.instancesMem, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); 
-    }
-
-    topLevelASGenerator.Generate(logicalDevice, commandBuffer, topLevelAS.structure, topLevelAS.scratchBuffer, 0, topLevelAS.resultBuffer, topLevelAS.resultMem, topLevelAS.instancesBuffer, topLevelAS.instancesMem, updateOnly, updateOnly ? topLevelAS.structure : VK_NULL_HANDLE);
-}
-
-void Engine::initializeAccelerationStructures() {
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo;
-    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    commandBufferAllocateInfo.pNext = nullptr;
-    commandBufferAllocateInfo.commandPool = commandPool[frameIndex];
-    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    commandBufferAllocateInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-    VkResult code =
-    vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer);
-    if(code != VK_SUCCESS) {
-        throw std::logic_error("rt vkAllocateCommandBuffers failed");
-    }
-
-    VkCommandBufferBeginInfo beginInfo;
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.pNext = nullptr;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pInheritanceInfo = nullptr;
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    bottomLevelAS.resize(geometryInstances.size());
-
-    std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>> instances;
-
-    for(size_t i = 0; i < geometryInstances.size(); i++) {
-        bottomLevelAS[i] = createBottomLevelAS(commandBuffer, {
-            {geometryInstances[i].vertexBuffer, geometryInstances[i].vertexCount,
-            geometryInstances[i].vertexOffset, geometryInstances[i].indexBuffer,
-            geometryInstances[i].indexCount, geometryInstances[i].indexOffset},
-        });
-        instances.push_back({bottomLevelAS[i].structure, geometryInstances[i].transform});
-    }
-
-    createTopLevelAS(commandBuffer, instances, VK_FALSE);
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo;
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.pNext = nullptr;
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pWaitSemaphores = nullptr;
-    submitInfo.pWaitDstStageMask = nullptr;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.signalSemaphoreCount = 0;
-    submitInfo.pSignalSemaphores = nullptr;
-
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-    vkFreeCommandBuffers(logicalDevice, commandPool[frameIndex], 1, &commandBuffer);
-}
-
-void Engine::destroyAccelerationStructure(const AccelerationStructure& accelerationStructure) {
-    vkDestroyBuffer(logicalDevice, accelerationStructure.scratchBuffer, nullptr);
-    vkFreeMemory(logicalDevice, accelerationStructure.scratchMem, nullptr);
-    vkDestroyBuffer(logicalDevice, accelerationStructure.resultBuffer, nullptr);
-    vkFreeMemory(logicalDevice, accelerationStructure.resultMem, nullptr);
-    vkDestroyBuffer(logicalDevice, accelerationStructure.instancesBuffer, nullptr);
-    vkFreeMemory(logicalDevice, accelerationStructure.instancesMem, nullptr);
-    vkDestroyAccelerationStructureNV(logicalDevice, accelerationStructure.structure, nullptr);
-}
-
-void Engine::initializeRaytracingDescriptorSet() {
-    VkBufferMemoryBarrier bmb = {};
-    bmb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    bmb.pNext = nullptr;
-    bmb.srcAccessMask = 0;
-    bmb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    bmb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    bmb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    bmb.offset = 0;
-    bmb.size = VK_WHOLE_SIZE;
-
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    bmb.buffer = vertexBuffer;
-    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1, &bmb, 0, nullptr);
-    bmb.buffer = indexBuffer;
-    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1, &bmb, 0, nullptr);
-    endSingleTimeCommands(commandBuffer);
-
-    // Add the bindings to the resources
-    // Top-level acceleration structure, usable by both the ray generation and the
-    // closest hit (to shoot shadow rays)
-    rtDSG.AddBinding(0, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, VK_SHADER_STAGE_RAYGEN_BIT_NV);
-    // Raytracing output
-    rtDSG.AddBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_NV);
-    // Scene data
-    // Vertex buffer
-    rtDSG.AddBinding(3, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-    // Index buffer
-    rtDSG.AddBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-
-    // Create the descriptor pool and layout
-    rtDescriptorPool = rtDSG.GeneratePool(logicalDevice);
-    rtDescriptorSetLayout = rtDSG.GenerateLayout(logicalDevice);
-
-    // Generate the descriptor set
-    rtDescriptorSet = rtDSG.GenerateSet(logicalDevice, rtDescriptorPool, rtDescriptorSetLayout);
-
-    // Bind the actual resources into the descriptor set
-    // Top-level acceleration structure
-    VkWriteDescriptorSetAccelerationStructureNV descriptorAccelerationStructureInfo;
-    descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
-    descriptorAccelerationStructureInfo.pNext = nullptr;
-    descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-    descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.structure;
-
-    rtDSG.Bind(rtDescriptorSet, 0, {descriptorAccelerationStructureInfo});
-
-    // Vertex buffer
-    VkDescriptorBufferInfo vertexInfo = {};
-    vertexInfo.buffer = vertexBuffer;
-    vertexInfo.offset = 0;
-    vertexInfo.range = VK_WHOLE_SIZE;
-
-    rtDSG.Bind(rtDescriptorSet, 3, {vertexInfo});
-
-    // Index buffer
-    VkDescriptorBufferInfo indexInfo = {};
-    indexInfo.buffer = indexBuffer;
-    indexInfo.offset = 0;
-    indexInfo.range = VK_WHOLE_SIZE;
-
-    rtDSG.Bind(rtDescriptorSet, 4, {indexInfo});
-    rtDSG.UpdateSetContents(logicalDevice, rtDescriptorSet);
-}
-
-void Engine::updateRaytracingRenderTarget(VkImageView target) {
-    VkDescriptorImageInfo descriptorOutputImageInfo;
-    descriptorOutputImageInfo.sampler = nullptr;
-    descriptorOutputImageInfo.imageView = target;
-    descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-    rtDSG.Bind(rtDescriptorSet, 1, {descriptorOutputImageInfo});
-    rtDSG.UpdateSetContents(logicalDevice, rtDescriptorSet);
-}
-
-void Engine::initializeRaytracingPipeline() {
-    nv_helpers_vk::RayTracingPipelineGenerator pipelineGen;
-    VkShaderModule rayGenModule = createShaderModule(readFile("shaders/rgen.spv"));
-    rayGenIndex = pipelineGen.AddRayGenShaderStage(rayGenModule);
-
-    VkShaderModule missModule = createShaderModule(readFile("shaders/rmiss.spv"));
-    missIndex = pipelineGen.AddMissShaderStage(missModule);
-
-    hitGroupIndex = pipelineGen.StartHitGroup();
-
-    VkShaderModule closestHitModule = createShaderModule(readFile("shaders/rchit.spv"));
-    pipelineGen.AddHitShaderStage(closestHitModule, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-    pipelineGen.EndHitGroup();
-
-    pipelineGen.SetMaxRecursionDepth(1);
-
-    pipelineGen.Generate(logicalDevice, rtDescriptorSetLayout, &rtPipeline, &rtPipelineLayout);
-
-    vkDestroyShaderModule(logicalDevice, rayGenModule, nullptr);
-    vkDestroyShaderModule(logicalDevice, missModule, nullptr);
-    vkDestroyShaderModule(logicalDevice, closestHitModule, nullptr);
-}
-
-void Engine::initializeShaderBindingTable() {
-    sbtGen.AddRayGenerationProgram(rayGenIndex, {});
-    sbtGen.AddMissProgram(missIndex, {});
-
-    sbtGen.AddHitGroup(hitGroupIndex, {});
-
-    VkDeviceSize shaderBindingTableSize = sbtGen.ComputeSBTSize(raytracingProperties);
-
-    nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, shaderBindingTableSize,
-                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &shaderBindingTableBuffer,
-                              &shaderBindingTableMem, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    sbtGen.Generate(logicalDevice, rtPipeline, shaderBindingTableBuffer, shaderBindingTableMem);
 }
 
 void Engine::initializeWindow() {
@@ -353,27 +47,27 @@ void Engine::initializeVulkan() {
         instanceExtensions.push_back(glfw_extensions[i]);
     }
 
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    VkInstanceCreateInfo create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
     if(enableValidationLayers) {
         const char* layers[] = {"VK_LAYER_LUNARG_standard_validation"};
-        createInfo.enabledLayerCount = 1;
-        createInfo.ppEnabledLayerNames = layers;
+        create_info.enabledLayerCount = 1;
+        create_info.ppEnabledLayerNames = layers;
     }
     else {
-        createInfo.enabledLayerCount = 0;
+        create_info.enabledLayerCount = 0;
     }
     instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
-    createInfo.ppEnabledExtensionNames = instanceExtensions.data();
+    create_info.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
+    create_info.ppEnabledExtensionNames = instanceExtensions.data();
 
-    if (vkCreateInstance(&createInfo, allocator, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&create_info, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Could not create Vulkan instance");
     }
 
-    if (glfwCreateWindowSurface(instance, window, allocator, &surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Could not create window surface");
     }
 }
@@ -476,12 +170,12 @@ void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions)
     queueInfo[0].queueFamilyIndex = queueFamily;
     queueInfo[0].queueCount = queueCount;
     queueInfo[0].pQueuePriorities = queuePriority;
-    VkDeviceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
-    createInfo.pQueueCreateInfos = queueInfo;
-    createInfo.enabledExtensionCount = deviceExtensionCount;
-    createInfo.ppEnabledExtensionNames = extensions.data();
+    VkDeviceCreateInfo create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    create_info.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
+    create_info.pQueueCreateInfos = queueInfo;
+    create_info.enabledExtensionCount = deviceExtensionCount;
+    create_info.ppEnabledExtensionNames = extensions.data();
 
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexFeatures = {};
     descIndexFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
@@ -489,12 +183,12 @@ void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions)
     supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     supportedFeatures.pNext = &descIndexFeatures;
     vkGetPhysicalDeviceFeatures2(physicalDevice, &supportedFeatures);
-    createInfo.pEnabledFeatures = &(supportedFeatures.features);
-    createInfo.pNext = &descIndexFeatures;
+    create_info.pEnabledFeatures = &(supportedFeatures.features);
+    create_info.pNext = &descIndexFeatures;
 
-    // createInfo.pNext = supportedFeatures.pNext;
+    // create_info.pNext = supportedFeatures.pNext;
 
-    if (vkCreateDevice(physicalDevice, &createInfo, allocator, &logicalDevice) != VK_SUCCESS) {
+    if (vkCreateDevice(physicalDevice, &create_info, nullptr, &logicalDevice) != VK_SUCCESS) {
         throw std::runtime_error("failed to create a logical connection");
     }
 
@@ -507,7 +201,7 @@ void Engine::initializeCommandBuffers() {
         commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         commandPoolCreateInfo.queueFamilyIndex = queueFamily;
-        if (vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, allocator, &commandPool[i]) != VK_SUCCESS) {
+        if (vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, nullptr, &commandPool[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create a command pool");
         }
 
@@ -523,16 +217,16 @@ void Engine::initializeCommandBuffers() {
         VkFenceCreateInfo fenceCreateInfo = {};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        if (vkCreateFence(logicalDevice, &fenceCreateInfo, allocator, &fence[i]) != VK_SUCCESS) {
+        if (vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create a fence");
         }
 
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, allocator, &presentCompleteSemaphore[i]) != VK_SUCCESS) {
+        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &presentCompleteSemaphore[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create a semaphore");
         }
-        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, allocator, &renderCompleteSemaphore[i]) != VK_SUCCESS) {
+        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &renderCompleteSemaphore[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create a semaphore");
         }
     }
@@ -559,7 +253,7 @@ void Engine::initializeDescriptorPool() {
     poolInfo.maxSets = 1000;
     poolInfo.poolSizeCount = _countof(poolSize);
     poolInfo.pPoolSizes = poolSize;
-    if (vkCreateDescriptorPool(logicalDevice, &poolInfo, allocator, &descriptorPool) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create a descriptor pool");
     }
 }
@@ -605,7 +299,7 @@ void Engine::initializeSwapchain(VkSwapchainKHR swapchainArg, int width, int hei
         info.imageExtent.height = framebufferHeight;
     }
 
-    if (vkCreateSwapchainKHR(logicalDevice, &info, allocator, &swapchain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(logicalDevice, &info, nullptr, &swapchain) != VK_SUCCESS) {
         throw std::runtime_error("failed to create a swapchain");
     }
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, &backBufferCount, nullptr);
@@ -691,7 +385,7 @@ void Engine::initializeRenderPass() {
     renderPassInfo.pSubpasses = subpasses;
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
-    if (vkCreateRenderPass(logicalDevice, &renderPassInfo, allocator, &renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("failed to create a render pass");
     }
 }
@@ -709,7 +403,7 @@ void Engine::initializeImageViews() {
 
     for (uint32_t i = 0; i < backBufferCount; i++) {
         info.image = backBuffer[i];
-        if (vkCreateImageView(logicalDevice, &info, allocator, &backBufferView[i]) != VK_SUCCESS) {
+        if (vkCreateImageView(logicalDevice, &info, nullptr, &backBufferView[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create an image view");
         }
     }
@@ -737,134 +431,14 @@ void Engine::initializeFramebuffer() {
     info.layers = 1;
     for(uint32_t i = 0; i < backBufferCount; i++) {
         attachments[0] = backBufferView[i];
-        if (vkCreateFramebuffer(logicalDevice, &info, allocator, &framebuffer[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(logicalDevice, &info, nullptr, &framebuffer[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create a framebuffer");
         }
     }
 }
 
 void Engine::renderFrame() {
-    frameBegin();
-    VkCommandBuffer cmdBuff = commandBuffer[frameIndex];
 
-    clearValue = {0.5f, 0.5f, 0.5f, 1.0f};
-
-    VkImageSubresourceRange subresourceRange;
-    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = 1;
-    subresourceRange.baseArrayLayer = 0;
-    subresourceRange.layerCount = 1;
-
-    nv_helpers_vk::imageBarrier(cmdBuff, backBuffer[backBufferIndices[frameIndex]], subresourceRange, 0,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                              VK_IMAGE_LAYOUT_GENERAL);
-
-    updateRaytracingRenderTarget(backBufferView[backBufferIndices[frameIndex]]);
-
-    beginRenderPass();
-
-    vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, rtPipeline);
-
-    vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-                          rtPipelineLayout, 0, 1, &rtDescriptorSet,
-                          0, nullptr);
-
-    VkDeviceSize rayGenOffset = sbtGen.GetRayGenOffset();
-    VkDeviceSize missOffset = sbtGen.GetMissOffset();
-    VkDeviceSize missStride = sbtGen.GetMissEntrySize();
-    VkDeviceSize hitGroupOffset = sbtGen.GetHitGroupOffset();
-    VkDeviceSize hitGroupStride = sbtGen.GetHitGroupEntrySize();
-
-    vkCmdTraceRaysNV(cmdBuff, shaderBindingTableBuffer, rayGenOffset,
-                    shaderBindingTableBuffer, missOffset, missStride,
-                    shaderBindingTableBuffer, hitGroupOffset, hitGroupStride,
-                    VK_NULL_HANDLE, 0, 0, framebufferSize.width,
-                    framebufferSize.height, 1);
-
-    vkCmdNextSubpass(cmdBuff, VK_SUBPASS_CONTENTS_INLINE);
-    endRenderPass();
-
-    frameEnd();
-    framePresent();
-}
-
-void Engine::frameBegin() {
-    VkResult err;
-    for (;;) {
-        err = vkWaitForFences(logicalDevice, 1, &fence[frameIndex], VK_TRUE, 100);
-        if(err == VK_SUCCESS) {
-            break;
-        }
-        if (err == VK_TIMEOUT) {
-            continue;
-        }
-    }
-
-    err = vkAcquireNextImageKHR(logicalDevice, swapchain, UINT64_MAX,
-                                presentCompleteSemaphore[frameIndex], VK_NULL_HANDLE,
-                                &backBufferIndices[frameIndex]);
-    // err = vkResetCommandPool(logicalDevice, m_commandPool[m_frameIndex], 0);
-    // check_vk_result(err);
-    VkCommandBufferBeginInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    err = vkBeginCommandBuffer(commandBuffer[frameIndex], &info);
-}
-
-void Engine::beginRenderPass() {
-    VkRenderPassBeginInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    info.renderPass = renderPass;
-    info.framebuffer = framebuffer[backBufferIndices[frameIndex]];
-    info.renderArea.extent.width = SCREENWIDTH;
-    info.renderArea.extent.height = SCREENHEIGHT;
-    std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = clearValue.color;
-    clearValues[1].depthStencil = {1.0f, 0};
-
-    info.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    info.pClearValues = clearValues.data();
-    vkCmdBeginRenderPass(commandBuffer[frameIndex], &info, VK_SUBPASS_CONTENTS_INLINE);
-}
-
-void Engine::endRenderPass() {
-    vkCmdEndRenderPass(commandBuffer[frameIndex]);
-}
-
-void Engine::frameEnd() {
-    VkResult err;
-
-    VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    VkSubmitInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    info.waitSemaphoreCount = 1;
-    info.pWaitSemaphores = &presentCompleteSemaphore[frameIndex];
-    info.pWaitDstStageMask = &wait_stage;
-    info.commandBufferCount = 1;
-    info.pCommandBuffers = &commandBuffer[frameIndex];
-    info.signalSemaphoreCount = 1;
-    info.pSignalSemaphores = &renderCompleteSemaphore[frameIndex];
-
-    err = vkEndCommandBuffer(commandBuffer[frameIndex]);
-    err = vkResetFences(logicalDevice, 1, &fence[frameIndex]);
-    err = vkQueueSubmit(queue, 1, &info, fence[frameIndex]);
-}
-
-void Engine::framePresent() {
-    VkResult err;
-    VkSwapchainKHR swapchains[1] = {swapchain};
-    uint32_t indices[1] = {backBufferIndices[frameIndex]};
-    VkPresentInfoKHR info = {};
-    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    info.waitSemaphoreCount = 1;
-    info.pWaitSemaphores = &renderCompleteSemaphore[frameIndex];
-    info.swapchainCount = 1;
-    info.pSwapchains = swapchains;
-    info.pImageIndices = indices;
-    err = vkQueuePresentKHR(queue, &info);
-
-    frameIndex = (frameIndex + 1) % VK_QUEUED_FRAMES;
 }
 
 void Engine::start() {
@@ -1157,71 +731,4 @@ void Engine::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
   vkQueueWaitIdle(queue);
 
   vkFreeCommandBuffers(logicalDevice, commandPool[0], 1, &commandBuffer);
-}
-
-std::vector<char> Engine::readFile(const std::string& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if(!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-
-    auto fileSize = static_cast<size_t>(file.tellg());
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-
-    return buffer;
-}
-
-VkShaderModule Engine::createShaderModule(const std::vector<char>& code) {
-    VkShaderModuleCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    VkShaderModule shaderModule;
-    if(vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create shader module!");
-    }
-
-    return shaderModule;
-}
-
-void Engine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if(vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
-}
-
-void Engine::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferCopy copyRegion = {};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-    endSingleTimeCommands(commandBuffer);
 }
