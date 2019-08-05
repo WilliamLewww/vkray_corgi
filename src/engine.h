@@ -11,9 +11,11 @@
 #include <utility>
 #include <set>
 
-#include <nv_helpers_vk/BottomLevelASGenerator.h>
-#include <nv_helpers_vk/TopLevelASGenerator.h>
-#include <nv_helpers_vk/VKHelpers.h>
+#include "nv_helpers_vk/RaytracingPipelineGenerator.h"
+#include "nv_helpers_vk/DescriptorSetGenerator.h"
+#include "nv_helpers_vk/BottomLevelASGenerator.h"
+#include "nv_helpers_vk/TopLevelASGenerator.h"
+#include "nv_helpers_vk/VKHelpers.h"
 
 struct Vertex {
 	glm::vec2 pos;
@@ -70,6 +72,16 @@ private:
 	nv_helpers_vk::TopLevelASGenerator topLevelASGenerator;
 	AccelerationStructure topLevelAS;
 	std::vector<AccelerationStructure> bottomLevelAS;
+	nv_helpers_vk::DescriptorSetGenerator rtDSG;
+	VkDescriptorPool rtDescriptorPool;
+	VkDescriptorSetLayout rtDescriptorSetLayout;
+	VkDescriptorSet rtDescriptorSet;
+	VkPipelineLayout rtPipelineLayout = VK_NULL_HANDLE;
+	VkPipeline rtPipeline = VK_NULL_HANDLE;
+
+	uint32_t rayGenIndex;
+	uint32_t hitGroupIndex;
+	uint32_t missIndex;
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -82,6 +94,7 @@ private:
   	VkPresentModeKHR presentMode = {};
   	VkImageSubresourceRange imageRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
+  	uint32_t frameIndex = 0;
   	VkCommandPool commandPool[MAX_FRAMES_IN_FLIGHT];
   	VkCommandBuffer commandBuffer[MAX_FRAMES_IN_FLIGHT];
 	VkFence fence[MAX_FRAMES_IN_FLIGHT];
@@ -128,16 +141,18 @@ private:
 
 	void initializeVertexBuffer(const std::vector<Vertex>& vertex);
 	void initializeIndexBuffer(const std::vector<uint32_t>& indices);
-	void initializeDescriptorSetLayout();
-	void initializeGraphicsPipeline();
 
 	void initializeRayTracing();
 	void initializeGeometryInstances();
+	void initializeAccelerationStructures();
+	void initializeRaytracingDescriptorSet();
+	void initializeRaytracingPipeline();
 
 	AccelerationStructure createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers);
 	void createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly);
-	void createAccelerationStructures();
 	void destroyAccelerationStructure(const AccelerationStructure& as);
+
+	void updateRaytracingRenderTarget(VkImageView target);
 
 	void renderFrame();
 

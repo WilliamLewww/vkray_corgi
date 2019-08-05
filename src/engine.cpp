@@ -39,15 +39,15 @@ void Engine::initialize() {
     initializeDepthResources();
     initializeFramebuffer();
 
-    nbIndices  = static_cast<uint32_t>(indices.size());
+    nbIndices = static_cast<uint32_t>(indices.size());
     nbVertices = static_cast<uint32_t>(vertices.size());
     initializeVertexBuffer(vertices);
     initializeIndexBuffer(indices);
-    initializeDescriptorSetLayout();
-    initializeGraphicsPipeline();
-
     initializeRayTracing();
     initializeGeometryInstances();
+    initializeAccelerationStructures();
+    initializeRaytracingDescriptorSet();
+    initializeRaytracingPipeline();
 }
 
 void Engine::initializeVertexBuffer(const std::vector<Vertex>& vertex) {
@@ -62,7 +62,7 @@ void Engine::initializeVertexBuffer(const std::vector<Vertex>& vertex) {
     memcpy(data, vertex.data(), static_cast<size_t>(bufferSize));
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
@@ -82,20 +82,12 @@ void Engine::initializeIndexBuffer(const std::vector<uint32_t>& indices) {
     memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
     vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
-}
-
-void Engine::initializeDescriptorSetLayout() {
-
-}
-
-void Engine::initializeGraphicsPipeline() {
-
 }
 
 void Engine::initializeRayTracing() {
@@ -113,6 +105,221 @@ void Engine::initializeRayTracing() {
 void Engine::initializeGeometryInstances() {
     glm::mat4x4 mat = glm::mat4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
     geometryInstances.push_back({vertexBuffer, nbVertices, 0, indexBuffer, nbIndices, 0, mat});
+}
+
+AccelerationStructure Engine::createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers) {
+    nv_helpers_vk::BottomLevelASGenerator bottomLevelAS;
+
+    for(const auto& buffer : vVertexBuffers) {
+        if(buffer.indexBuffer == VK_NULL_HANDLE) {
+            bottomLevelAS.AddVertexBuffer(buffer.vertexBuffer, buffer.vertexOffset, buffer.vertexCount,
+            sizeof(Vertex), VK_NULL_HANDLE, 0);
+        }
+        else {
+            bottomLevelAS.AddVertexBuffer(buffer.vertexBuffer, buffer.vertexOffset, buffer.vertexCount,
+            sizeof(Vertex), buffer.indexBuffer, buffer.indexOffset,
+            buffer.indexCount, VK_NULL_HANDLE, 0);
+        }
+    }
+
+    AccelerationStructure buffers;
+
+    buffers.structure = bottomLevelAS.CreateAccelerationStructure(logicalDevice, VK_FALSE);
+
+    VkDeviceSize scratchSizeInBytes = 0;
+    VkDeviceSize resultSizeInBytes = 0;
+    bottomLevelAS.ComputeASBufferSizes(logicalDevice, buffers.structure, &scratchSizeInBytes, &resultSizeInBytes);
+
+    nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, scratchSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &buffers.scratchBuffer, &buffers.scratchMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, resultSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &buffers.resultBuffer, &buffers.resultMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    bottomLevelAS.Generate(logicalDevice, commandBuffer, buffers.structure, buffers.scratchBuffer, 0, buffers.resultBuffer, buffers.resultMem, false, VK_NULL_HANDLE);
+
+    return buffers;
+}
+
+void Engine::createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly) {
+    if(!updateOnly) {
+        for(size_t i = 0; i < instances.size(); i++) {
+            topLevelASGenerator.AddInstance(instances[i].first, instances[i].second, static_cast<uint32_t>(i), static_cast<uint32_t>(i));
+        }
+
+        topLevelAS.structure = topLevelASGenerator.CreateAccelerationStructure(logicalDevice, VK_TRUE);
+
+        VkDeviceSize scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
+        topLevelASGenerator.ComputeASBufferSizes(logicalDevice, topLevelAS.structure, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
+
+        nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, scratchSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &topLevelAS.scratchBuffer, &topLevelAS.scratchMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, resultSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &topLevelAS.resultBuffer, &topLevelAS.resultMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, instanceDescsSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &topLevelAS.instancesBuffer, &topLevelAS.instancesMem, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); 
+    }
+
+    topLevelASGenerator.Generate(logicalDevice, commandBuffer, topLevelAS.structure, topLevelAS.scratchBuffer, 0, topLevelAS.resultBuffer, topLevelAS.resultMem, topLevelAS.instancesBuffer, topLevelAS.instancesMem, updateOnly, updateOnly ? topLevelAS.structure : VK_NULL_HANDLE);
+}
+
+void Engine::initializeAccelerationStructures() {
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo;
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.pNext = nullptr;
+    commandBufferAllocateInfo.commandPool = commandPool[frameIndex];
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    VkResult code =
+    vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer);
+    if(code != VK_SUCCESS) {
+        throw std::logic_error("rt vkAllocateCommandBuffers failed");
+    }
+
+    VkCommandBufferBeginInfo beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.pNext = nullptr;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    bottomLevelAS.resize(geometryInstances.size());
+
+    std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>> instances;
+
+    for(size_t i = 0; i < geometryInstances.size(); i++) {
+        bottomLevelAS[i] = createBottomLevelAS(commandBuffer, {
+            {geometryInstances[i].vertexBuffer, geometryInstances[i].vertexCount,
+            geometryInstances[i].vertexOffset, geometryInstances[i].indexBuffer,
+            geometryInstances[i].indexCount, geometryInstances[i].indexOffset},
+        });
+        instances.push_back({bottomLevelAS[i].structure, geometryInstances[i].transform});
+    }
+
+    createTopLevelAS(commandBuffer, instances, VK_FALSE);
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = nullptr;
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = nullptr;
+    submitInfo.pWaitDstStageMask = nullptr;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = nullptr;
+
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
+    vkFreeCommandBuffers(logicalDevice, commandPool[frameIndex], 1, &commandBuffer);
+}
+
+void Engine::destroyAccelerationStructure(const AccelerationStructure& accelerationStructure) {
+    vkDestroyBuffer(logicalDevice, accelerationStructure.scratchBuffer, nullptr);
+    vkFreeMemory(logicalDevice, accelerationStructure.scratchMem, nullptr);
+    vkDestroyBuffer(logicalDevice, accelerationStructure.resultBuffer, nullptr);
+    vkFreeMemory(logicalDevice, accelerationStructure.resultMem, nullptr);
+    vkDestroyBuffer(logicalDevice, accelerationStructure.instancesBuffer, nullptr);
+    vkFreeMemory(logicalDevice, accelerationStructure.instancesMem, nullptr);
+    vkDestroyAccelerationStructureNV(logicalDevice, accelerationStructure.structure, nullptr);
+}
+
+void Engine::initializeRaytracingDescriptorSet() {
+    VkBufferMemoryBarrier bmb = {};
+    bmb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bmb.pNext = nullptr;
+    bmb.srcAccessMask = 0;
+    bmb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    bmb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bmb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bmb.offset = 0;
+    bmb.size = VK_WHOLE_SIZE;
+
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+    bmb.buffer = vertexBuffer;
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1, &bmb, 0, nullptr);
+    bmb.buffer = indexBuffer;
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1, &bmb, 0, nullptr);
+    endSingleTimeCommands(commandBuffer);
+
+    // Add the bindings to the resources
+    // Top-level acceleration structure, usable by both the ray generation and the
+    // closest hit (to shoot shadow rays)
+    rtDSG.AddBinding(0, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+    // Raytracing output
+    rtDSG.AddBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+    // Scene data
+    // Vertex buffer
+    rtDSG.AddBinding(3, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+    // Index buffer
+    rtDSG.AddBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+
+    // Create the descriptor pool and layout
+    rtDescriptorPool = rtDSG.GeneratePool(logicalDevice);
+    rtDescriptorSetLayout = rtDSG.GenerateLayout(logicalDevice);
+
+    // Generate the descriptor set
+    rtDescriptorSet = rtDSG.GenerateSet(logicalDevice, rtDescriptorPool, rtDescriptorSetLayout);
+
+    // Bind the actual resources into the descriptor set
+    // Top-level acceleration structure
+    VkWriteDescriptorSetAccelerationStructureNV descriptorAccelerationStructureInfo;
+    descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+    descriptorAccelerationStructureInfo.pNext = nullptr;
+    descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+    descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.structure;
+
+    rtDSG.Bind(rtDescriptorSet, 0, {descriptorAccelerationStructureInfo});
+
+    // Vertex buffer
+    VkDescriptorBufferInfo vertexInfo = {};
+    vertexInfo.buffer = vertexBuffer;
+    vertexInfo.offset = 0;
+    vertexInfo.range = VK_WHOLE_SIZE;
+
+    rtDSG.Bind(rtDescriptorSet, 3, {vertexInfo});
+
+    // Index buffer
+    VkDescriptorBufferInfo indexInfo = {};
+    indexInfo.buffer = indexBuffer;
+    indexInfo.offset = 0;
+    indexInfo.range = VK_WHOLE_SIZE;
+
+    rtDSG.Bind(rtDescriptorSet, 4, {indexInfo});
+    rtDSG.UpdateSetContents(logicalDevice, rtDescriptorSet);
+}
+
+void Engine::updateRaytracingRenderTarget(VkImageView target) {
+    // Output buffer
+    VkDescriptorImageInfo descriptorOutputImageInfo;
+    descriptorOutputImageInfo.sampler = nullptr;
+    descriptorOutputImageInfo.imageView = target;
+    descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    rtDSG.Bind(rtDescriptorSet, 1, {descriptorOutputImageInfo});
+    // Copy the bound resource handles into the descriptor set
+    rtDSG.UpdateSetContents(logicalDevice, rtDescriptorSet);
+}
+
+void Engine::initializeRaytracingPipeline() {
+    nv_helpers_vk::RayTracingPipelineGenerator pipelineGen;
+    VkShaderModule rayGenModule = createShaderModule(readFile("shaders/raygen.spv"));
+    rayGenIndex = pipelineGen.AddRayGenShaderStage(rayGenModule);
+
+    VkShaderModule missModule = createShaderModule(readFile("shaders/miss.spv"));
+    missIndex = pipelineGen.AddMissShaderStage(missModule);
+
+    hitGroupIndex = pipelineGen.StartHitGroup();
+
+    VkShaderModule closestHitModule = createShaderModule(readFile("shaders/closesthit.spv"));
+    pipelineGen.AddHitShaderStage(closestHitModule, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+    pipelineGen.EndHitGroup();
+
+    pipelineGen.SetMaxRecursionDepth(1);
+
+    pipelineGen.Generate(logicalDevice, rtDescriptorSetLayout, &rtPipeline, &rtPipelineLayout);
+
+    vkDestroyShaderModule(logicalDevice, rayGenModule, nullptr);
+    vkDestroyShaderModule(logicalDevice, missModule, nullptr);
+    vkDestroyShaderModule(logicalDevice, closestHitModule, nullptr);
 }
 
 void Engine::initializeWindow() {
@@ -133,23 +340,23 @@ void Engine::initializeVulkan() {
         instanceExtensions.push_back(glfw_extensions[i]);
     }
 
-    VkInstanceCreateInfo create_info = {};
-    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    VkInstanceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
     if(enableValidationLayers) {
         const char* layers[] = {"VK_LAYER_LUNARG_standard_validation"};
-        create_info.enabledLayerCount = 1;
-        create_info.ppEnabledLayerNames = layers;
+        createInfo.enabledLayerCount = 1;
+        createInfo.ppEnabledLayerNames = layers;
     }
     else {
-        create_info.enabledLayerCount = 0;
+        createInfo.enabledLayerCount = 0;
     }
     instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
-    create_info.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
-    create_info.ppEnabledExtensionNames = instanceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
+    createInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
-    if (vkCreateInstance(&create_info, allocator, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, allocator, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Could not create Vulkan instance");
     }
 
@@ -256,12 +463,12 @@ void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions)
     queueInfo[0].queueFamilyIndex = queueFamily;
     queueInfo[0].queueCount = queueCount;
     queueInfo[0].pQueuePriorities = queuePriority;
-    VkDeviceCreateInfo create_info = {};
-    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
-    create_info.pQueueCreateInfos = queueInfo;
-    create_info.enabledExtensionCount = deviceExtensionCount;
-    create_info.ppEnabledExtensionNames = extensions.data();
+    VkDeviceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
+    createInfo.pQueueCreateInfos = queueInfo;
+    createInfo.enabledExtensionCount = deviceExtensionCount;
+    createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexFeatures = {};
     descIndexFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
@@ -269,12 +476,12 @@ void Engine::initializeLogicalDevice(const std::vector<const char*>& extensions)
     supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     supportedFeatures.pNext = &descIndexFeatures;
     vkGetPhysicalDeviceFeatures2(physicalDevice, &supportedFeatures);
-    create_info.pEnabledFeatures = &(supportedFeatures.features);
-    create_info.pNext = &descIndexFeatures;
+    createInfo.pEnabledFeatures = &(supportedFeatures.features);
+    createInfo.pNext = &descIndexFeatures;
 
-    // create_info.pNext = supportedFeatures.pNext;
+    // createInfo.pNext = supportedFeatures.pNext;
 
-    if (vkCreateDevice(physicalDevice, &create_info, allocator, &logicalDevice) != VK_SUCCESS) {
+    if (vkCreateDevice(physicalDevice, &createInfo, allocator, &logicalDevice) != VK_SUCCESS) {
         throw std::runtime_error("failed to create a logical connection");
     }
 
