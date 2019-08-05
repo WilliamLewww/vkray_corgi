@@ -11,6 +11,7 @@
 #include <utility>
 #include <set>
 
+#include "nv_helpers_vk/ShaderBindingTableGenerator.h"
 #include "nv_helpers_vk/RaytracingPipelineGenerator.h"
 #include "nv_helpers_vk/DescriptorSetGenerator.h"
 #include "nv_helpers_vk/BottomLevelASGenerator.h"
@@ -26,6 +27,7 @@ struct Vertex {
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 const int MAX_POSSIBLE_BACK_BUFFERS = 16;
+const int VK_QUEUED_FRAMES = 2;
 
 struct QueueFamilyIndices {
 	int graphicsFamily = -1;
@@ -78,6 +80,9 @@ private:
 	VkDescriptorSet rtDescriptorSet;
 	VkPipelineLayout rtPipelineLayout = VK_NULL_HANDLE;
 	VkPipeline rtPipeline = VK_NULL_HANDLE;
+	nv_helpers_vk::ShaderBindingTableGenerator sbtGen;
+	VkBuffer shaderBindingTableBuffer;
+	VkDeviceMemory shaderBindingTableMem;
 
 	uint32_t rayGenIndex;
 	uint32_t hitGroupIndex;
@@ -105,6 +110,7 @@ private:
 
 	VkExtent2D framebufferSize;
 	int framebufferWidth = 0, framebufferHeight = 0;
+	uint32_t backBufferIndices[VK_QUEUED_FRAMES];
 	uint32_t backBufferCount = 0;
 	VkImage backBuffer[MAX_POSSIBLE_BACK_BUFFERS] = {};
 	VkImageView backBufferView[MAX_POSSIBLE_BACK_BUFFERS] = {};
@@ -113,6 +119,7 @@ private:
 	VkImage depthImage = {};
 	VkDeviceMemory depthImageMemory = {};
 	VkImageView depthImageView = {};
+	VkClearValue clearValue = { };
 
 	uint32_t nbIndices;
 	uint32_t nbVertices;
@@ -147,6 +154,7 @@ private:
 	void initializeAccelerationStructures();
 	void initializeRaytracingDescriptorSet();
 	void initializeRaytracingPipeline();
+	void initializeShaderBindingTable();
 
 	AccelerationStructure createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers);
 	void createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly);
@@ -155,6 +163,11 @@ private:
 	void updateRaytracingRenderTarget(VkImageView target);
 
 	void renderFrame();
+	void frameBegin();
+	void beginRenderPass();
+	void endRenderPass();
+	void frameEnd();
+	void framePresent();
 
 	bool isDeviceSuitable(const VkPhysicalDevice& device, const std::vector<const char*>& extensions);
 	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);

@@ -48,6 +48,7 @@ void Engine::initialize() {
     initializeAccelerationStructures();
     initializeRaytracingDescriptorSet();
     initializeRaytracingPipeline();
+    initializeShaderBindingTable();
 }
 
 void Engine::initializeVertexBuffer(const std::vector<Vertex>& vertex) {
@@ -288,28 +289,26 @@ void Engine::initializeRaytracingDescriptorSet() {
 }
 
 void Engine::updateRaytracingRenderTarget(VkImageView target) {
-    // Output buffer
     VkDescriptorImageInfo descriptorOutputImageInfo;
     descriptorOutputImageInfo.sampler = nullptr;
     descriptorOutputImageInfo.imageView = target;
     descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     rtDSG.Bind(rtDescriptorSet, 1, {descriptorOutputImageInfo});
-    // Copy the bound resource handles into the descriptor set
     rtDSG.UpdateSetContents(logicalDevice, rtDescriptorSet);
 }
 
 void Engine::initializeRaytracingPipeline() {
     nv_helpers_vk::RayTracingPipelineGenerator pipelineGen;
-    VkShaderModule rayGenModule = createShaderModule(readFile("shaders/raygen.spv"));
+    VkShaderModule rayGenModule = createShaderModule(readFile("shaders/rgen.spv"));
     rayGenIndex = pipelineGen.AddRayGenShaderStage(rayGenModule);
 
-    VkShaderModule missModule = createShaderModule(readFile("shaders/miss.spv"));
+    VkShaderModule missModule = createShaderModule(readFile("shaders/rmiss.spv"));
     missIndex = pipelineGen.AddMissShaderStage(missModule);
 
     hitGroupIndex = pipelineGen.StartHitGroup();
 
-    VkShaderModule closestHitModule = createShaderModule(readFile("shaders/closesthit.spv"));
+    VkShaderModule closestHitModule = createShaderModule(readFile("shaders/rchit.spv"));
     pipelineGen.AddHitShaderStage(closestHitModule, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
     pipelineGen.EndHitGroup();
 
@@ -320,6 +319,20 @@ void Engine::initializeRaytracingPipeline() {
     vkDestroyShaderModule(logicalDevice, rayGenModule, nullptr);
     vkDestroyShaderModule(logicalDevice, missModule, nullptr);
     vkDestroyShaderModule(logicalDevice, closestHitModule, nullptr);
+}
+
+void Engine::initializeShaderBindingTable() {
+    sbtGen.AddRayGenerationProgram(rayGenIndex, {});
+    sbtGen.AddMissProgram(missIndex, {});
+
+    sbtGen.AddHitGroup(hitGroupIndex, {});
+
+    VkDeviceSize shaderBindingTableSize = sbtGen.ComputeSBTSize(raytracingProperties);
+
+    nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, shaderBindingTableSize,
+                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &shaderBindingTableBuffer,
+                              &shaderBindingTableMem, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    sbtGen.Generate(logicalDevice, rtPipeline, shaderBindingTableBuffer, shaderBindingTableMem);
 }
 
 void Engine::initializeWindow() {
@@ -731,7 +744,127 @@ void Engine::initializeFramebuffer() {
 }
 
 void Engine::renderFrame() {
+    frameBegin();
+    VkCommandBuffer cmdBuff = commandBuffer[frameIndex];
 
+    clearValue = {0.5f, 0.5f, 0.5f, 1.0f};
+
+    VkImageSubresourceRange subresourceRange;
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.baseArrayLayer = 0;
+    subresourceRange.layerCount = 1;
+
+    nv_helpers_vk::imageBarrier(cmdBuff, backBuffer[backBufferIndices[frameIndex]], subresourceRange, 0,
+                              VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                              VK_IMAGE_LAYOUT_GENERAL);
+
+    updateRaytracingRenderTarget(backBufferView[backBufferIndices[frameIndex]]);
+
+    beginRenderPass();
+
+    vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, rtPipeline);
+
+    vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
+                          rtPipelineLayout, 0, 1, &rtDescriptorSet,
+                          0, nullptr);
+
+    VkDeviceSize rayGenOffset = sbtGen.GetRayGenOffset();
+    VkDeviceSize missOffset = sbtGen.GetMissOffset();
+    VkDeviceSize missStride = sbtGen.GetMissEntrySize();
+    VkDeviceSize hitGroupOffset = sbtGen.GetHitGroupOffset();
+    VkDeviceSize hitGroupStride = sbtGen.GetHitGroupEntrySize();
+
+    vkCmdTraceRaysNV(cmdBuff, shaderBindingTableBuffer, rayGenOffset,
+                    shaderBindingTableBuffer, missOffset, missStride,
+                    shaderBindingTableBuffer, hitGroupOffset, hitGroupStride,
+                    VK_NULL_HANDLE, 0, 0, framebufferSize.width,
+                    framebufferSize.height, 1);
+
+    vkCmdNextSubpass(cmdBuff, VK_SUBPASS_CONTENTS_INLINE);
+    endRenderPass();
+
+    frameEnd();
+    framePresent();
+}
+
+void Engine::frameBegin() {
+    VkResult err;
+    for (;;) {
+        err = vkWaitForFences(logicalDevice, 1, &fence[frameIndex], VK_TRUE, 100);
+        if(err == VK_SUCCESS) {
+            break;
+        }
+        if (err == VK_TIMEOUT) {
+            continue;
+        }
+    }
+
+    err = vkAcquireNextImageKHR(logicalDevice, swapchain, UINT64_MAX,
+                                presentCompleteSemaphore[frameIndex], VK_NULL_HANDLE,
+                                &backBufferIndices[frameIndex]);
+    // err = vkResetCommandPool(logicalDevice, m_commandPool[m_frameIndex], 0);
+    // check_vk_result(err);
+    VkCommandBufferBeginInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    err = vkBeginCommandBuffer(commandBuffer[frameIndex], &info);
+}
+
+void Engine::beginRenderPass() {
+    VkRenderPassBeginInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    info.renderPass = renderPass;
+    info.framebuffer = framebuffer[backBufferIndices[frameIndex]];
+    info.renderArea.extent.width = SCREENWIDTH;
+    info.renderArea.extent.height = SCREENHEIGHT;
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0].color = clearValue.color;
+    clearValues[1].depthStencil = {1.0f, 0};
+
+    info.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    info.pClearValues = clearValues.data();
+    vkCmdBeginRenderPass(commandBuffer[frameIndex], &info, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void Engine::endRenderPass() {
+    vkCmdEndRenderPass(commandBuffer[frameIndex]);
+}
+
+void Engine::frameEnd() {
+    VkResult err;
+
+    VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkSubmitInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    info.waitSemaphoreCount = 1;
+    info.pWaitSemaphores = &presentCompleteSemaphore[frameIndex];
+    info.pWaitDstStageMask = &wait_stage;
+    info.commandBufferCount = 1;
+    info.pCommandBuffers = &commandBuffer[frameIndex];
+    info.signalSemaphoreCount = 1;
+    info.pSignalSemaphores = &renderCompleteSemaphore[frameIndex];
+
+    err = vkEndCommandBuffer(commandBuffer[frameIndex]);
+    err = vkResetFences(logicalDevice, 1, &fence[frameIndex]);
+    err = vkQueueSubmit(queue, 1, &info, fence[frameIndex]);
+}
+
+void Engine::framePresent() {
+    VkResult err;
+    VkSwapchainKHR swapchains[1] = {swapchain};
+    uint32_t indices[1] = {backBufferIndices[frameIndex]};
+    VkPresentInfoKHR info = {};
+    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    info.waitSemaphoreCount = 1;
+    info.pWaitSemaphores = &renderCompleteSemaphore[frameIndex];
+    info.swapchainCount = 1;
+    info.pSwapchains = swapchains;
+    info.pImageIndices = indices;
+    err = vkQueuePresentKHR(queue, &info);
+
+    frameIndex = (frameIndex + 1) % VK_QUEUED_FRAMES;
 }
 
 void Engine::start() {
