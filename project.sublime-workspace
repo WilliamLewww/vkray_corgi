@@ -519,6 +519,24 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "project.sublime-project",
+			"settings":
+			{
+				"buffer_size": 2032,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/engine.cpp",
+			"settings":
+			{
+				"buffer_size": 58332,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "vkray_corgi",
 	"build_system_choices":
@@ -793,10 +811,16 @@
 	"expanded_folders":
 	[
 		"/C/Users/William/Desktop/vkray_corgi",
+		"/C/Users/William/Desktop/vkray_corgi/res",
+		"/C/Users/William/Desktop/vkray_corgi/shaders",
 		"/C/Users/William/Desktop/vkray_corgi/src"
 	],
 	"file_history":
 	[
+		"/C/Users/William/Desktop/vkray_corgi/.gitignore",
+		"/C/Users/William/Desktop/vkray_corgi/shaders/test.vert",
+		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.vert",
+		"/C/Users/William/Desktop/vulkan_phong/project.sublime-project",
 		"/C/Users/William/Desktop/vkray_corgi/src/engine.cpp",
 		"/C/Users/William/Desktop/vkray_corgi/src/engine.h",
 		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.h",
@@ -837,7 +861,6 @@
 		"/C/Users/William/Desktop/vkray_corgi/main.cpp",
 		"/C/Users/William/Desktop/vkexamples/libs/vulkannv/vulkan_raytracing.cpp",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.frag",
-		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.vert",
 		"/C/Users/William/Desktop/vulkan_phong/shaders/phong.frag",
 		"/C/Users/William/Desktop/vulkan_phong/shaders/phong.vert",
 		"/C/Users/William/Desktop/vulkan_phong/main.cpp",
@@ -847,7 +870,6 @@
 		"/C/Users/William/Desktop/vulkan_phong/src/joiner.h",
 		"/C/Users/William/Desktop/vulkan_phong/src/engine.cpp",
 		"/C/Users/William/Desktop/vulkan_phong/src/engine.h",
-		"/C/Users/William/Desktop/vulkan_phong/project.sublime-project",
 		"/C/Users/William/Desktop/corgi_texture.jpg",
 		"/C/Users/William/Desktop/corgi.obj",
 		"/C/Users/William/Desktop/13467_Cardigan_Welsh_Corgi_v1_L3.obj",
@@ -922,9 +944,7 @@
 		"/Users/wlew/Desktop/Visualizer/server/client/src/engine.js",
 		"/Users/wlew/Desktop/Visualizer/client_vm/sb-show-deps",
 		"/Users/wlew/Desktop/Visualizer/server/client/src/network.js",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/client.js",
-		"/Users/wlew/Desktop/Visualizer/client_vm/client.py",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/joiner.js"
+		"/Users/wlew/Desktop/Visualizer/server/client/src/client.js"
 	],
 	"find":
 	{
@@ -944,6 +964,8 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"vulkan_phong",
+			"Vulkan-Phong",
 			"beginSingleTimeCommands",
 			"m_uniformBuffer",
 			"uniform",
@@ -1069,9 +1091,7 @@
 			"Initialize",
 			"VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV",
 			"maxRecursionDepth",
-			"framePresent",
-			"frameEnd",
-			"endRenderPass"
+			"framePresent"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1089,8 +1109,66 @@
 	"groups":
 	[
 		{
+			"selected": 1,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "project.sublime-project",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2032,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								599,
+								599
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 78.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/engine.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 58332,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								691,
+								691
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],

@@ -10,13 +10,12 @@ const int SCREENHEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
 const bool enableValidationLayers = true;
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
+
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+    VK_NV_RAY_TRACING_EXTENSION_NAME
 };
 
 const std::string MODEL_PATH = "res/corgi.obj";
@@ -45,42 +44,48 @@ struct LightObject {
 
 float currentModelRotation = 0.01f;
 
-std::vector<VkVertexInputBindingDescription> getBindingDescription() {
-	std::vector<VkVertexInputBindingDescription> bindingDescription(3);
+std::vector<VkVertexInputBindingDescription> Vertex::getBindingDescription() {
+	std::vector<VkVertexInputBindingDescription> bindingDescription(1);
 	bindingDescription[0].binding = 0;
-	bindingDescription[0].stride = sizeof(glm::vec3);
+	bindingDescription[0].stride = sizeof(Vertex);
 	bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	bindingDescription[1].binding = 1;
-	bindingDescription[1].stride = sizeof(glm::vec2);
-	bindingDescription[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	bindingDescription[2].binding = 2;
-	bindingDescription[2].stride = sizeof(glm::vec3);
-	bindingDescription[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	return bindingDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions() {
 	std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
 
 	attributeDescriptions[0].binding = 0;
 	attributeDescriptions[0].location = 0;
 	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[0].offset = 0;
+	attributeDescriptions[0].offset = offsetof(Vertex, position);
 
-	attributeDescriptions[1].binding = 1;
+	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
-	attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
-	attributeDescriptions[1].offset = 0;
+	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[1].offset = offsetof(Vertex, normal);
 
-	attributeDescriptions[2].binding = 2;
+	attributeDescriptions[2].binding = 0;
 	attributeDescriptions[2].location = 2;
-	attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[2].offset = 0;
+	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[2].offset = offsetof(Vertex, textureCoordinate);
 
 	return attributeDescriptions;
+}
+
+bool Vertex::operator==(const Vertex& other) const {
+	return position == other.position && normal == other.normal && textureCoordinate == other.textureCoordinate;
+}
+
+namespace std {
+    template<> struct hash<Vertex> {
+			size_t operator()(Vertex const& vertex) const {
+				return ((hash<glm::vec3>()(vertex.position) ^
+						(hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
+						(hash<glm::vec2>()(vertex.textureCoordinate) << 1);
+        }
+    };
 }
 
 void Engine::initialize() {
@@ -177,26 +182,25 @@ void Engine::initializeVulkan() {
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	if (enableValidationLayers) {
-		extensions.push_back("VK_KHR_surface");
-		extensions.push_back("VK_EXT_debug_report");
-	}
+	extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledExtensionCount = extensions.size();
-	createInfo.ppEnabledExtensionNames = extensions.data();
 
-	if (enableValidationLayers) {
-	    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	    createInfo.ppEnabledLayerNames = validationLayers.data();
-	} else {
+	if(enableValidationLayers) {
+	    const char* layers[] = {"VK_LAYER_LUNARG_standard_validation"};
+	    createInfo.enabledLayerCount = 1;
+	    createInfo.ppEnabledLayerNames = layers;
+	}
+	else {
 	    createInfo.enabledLayerCount = 0;
 	}
+	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+	
+	createInfo.enabledExtensionCount = extensions.size();
+	createInfo.ppEnabledExtensionNames = extensions.data();
 
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create instance!");
@@ -480,8 +484,8 @@ void Engine::initializeGraphicsPipeline() {
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-	auto bindingDescription = getBindingDescription();
-	auto attributeDescriptions = getAttributeDescriptions();
+	auto bindingDescription = Vertex::getBindingDescription();
+	auto attributeDescriptions = Vertex::getAttributeDescriptions();
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = bindingDescription.size();
@@ -709,22 +713,6 @@ void Engine::initializeTextureSampler() {
     }
 }
 
-struct PositionHolder {
-	glm::vec3 position;
-
-    bool operator==(const PositionHolder& other) const {
-        return position == other.position;
-    }
-};
-
-namespace std {
-    template<> struct hash<PositionHolder> {
-        size_t operator()(PositionHolder const& positionHolder) const {
-            return (hash<glm::vec3>()(positionHolder.position) << 1);
-        }
-    };
-}
-
 void Engine::initializeModel() {
 	tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -735,109 +723,42 @@ void Engine::initializeModel() {
         throw std::runtime_error(warn + err);
     }
 
-	std::unordered_map<PositionHolder, uint32_t> uniqueVertices = {};
+	std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
 	for (const auto& shape : shapes) {
         for (const auto& index : shape.mesh.indices) {
-            PositionHolder positionHolder = {};
-            glm::vec2 textureCoordinate;
-            glm::vec3 normal;
+        	Vertex vertex = {};
 
-            positionHolder.position = {
+            vertex.position = {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            textureCoordinate = {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            normal = {
+            vertex.normal = {
                 attrib.normals[3 * index.normal_index + 0],
                 attrib.normals[3 * index.normal_index + 1],
                 attrib.normals[3 * index.normal_index + 2]
             };
 
-            if (uniqueVertices.count(positionHolder) == 0) {
-                uniqueVertices[positionHolder] = static_cast<uint32_t>(positionVertices.size());
+            vertex.textureCoordinate = {
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+            };
 
-                positionVertices.push_back(positionHolder.position);
-                textureCoordinateVertices.push_back(textureCoordinate);
-                normalVertices.push_back(normal);
+            if (uniqueVertices.count(vertex) == 0) {
+                uniqueVertices[vertex] = static_cast<uint32_t>(vertexList.size());
+
+                vertexList.push_back(vertex);
             }
 
-            positionIndices.push_back(uniqueVertices[positionHolder]);
+            indexList.push_back(uniqueVertices[vertex]);
         }
     }
 }
 
 void Engine::initializeVertexBuffer() {
-	VkDeviceSize positionBufferSize = sizeof(positionVertices[0]) * positionVertices.size();
-
-	VkBuffer positionStagingBuffer;
-	VkDeviceMemory positionStagingBufferMemory;
-	createBuffer(positionBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, positionStagingBuffer, positionStagingBufferMemory);
-
-	void* positionData;
-	if (vkMapMemory(logicalDevice, positionStagingBufferMemory, 0, positionBufferSize, 0, &positionData) != VK_SUCCESS) {
-		throw std::runtime_error("failed to map memory!");
-	};
-		memcpy(positionData, positionVertices.data(), (size_t) positionBufferSize);
-	vkUnmapMemory(logicalDevice, positionStagingBufferMemory);
-
-	createBuffer(positionBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, positionVertexBuffer, positionVertexBufferMemory);
-	copyBuffer(positionStagingBuffer, positionVertexBuffer, positionBufferSize);
-
-	vkDestroyBuffer(logicalDevice, positionStagingBuffer, nullptr);
-	vkFreeMemory(logicalDevice, positionStagingBufferMemory, nullptr);
-
-	// =============================================================================================
-
-	VkDeviceSize textureCoordinateBufferSize = sizeof(textureCoordinateVertices[0]) * textureCoordinateVertices.size();
-
-	VkBuffer textureCoordinateStagingBuffer;
-	VkDeviceMemory textureCoordinateStagingBufferMemory;
-	createBuffer(textureCoordinateBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, textureCoordinateStagingBuffer, textureCoordinateStagingBufferMemory);
-
-	void* textureCoordinateData;
-	if (vkMapMemory(logicalDevice, textureCoordinateStagingBufferMemory, 0, textureCoordinateBufferSize, 0, &textureCoordinateData) != VK_SUCCESS) {
-		throw std::runtime_error("failed to map memory!");
-	};
-		memcpy(textureCoordinateData, textureCoordinateVertices.data(), (size_t) textureCoordinateBufferSize);
-	vkUnmapMemory(logicalDevice, textureCoordinateStagingBufferMemory);
-
-	createBuffer(textureCoordinateBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureCoordinateVertexBuffer, textureCoordinateVertexBufferMemory);
-	copyBuffer(textureCoordinateStagingBuffer, textureCoordinateVertexBuffer, textureCoordinateBufferSize);
-
-	vkDestroyBuffer(logicalDevice, textureCoordinateStagingBuffer, nullptr);
-	vkFreeMemory(logicalDevice, textureCoordinateStagingBufferMemory, nullptr);
-
-	// =============================================================================================
-
-	VkDeviceSize normalBufferSize = sizeof(normalVertices[0]) * normalVertices.size();
-
-	VkBuffer normalStagingBuffer;
-	VkDeviceMemory normalStagingBufferMemory;
-	createBuffer(normalBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, normalStagingBuffer, normalStagingBufferMemory);
-
-	void* normalData;
-	if (vkMapMemory(logicalDevice, normalStagingBufferMemory, 0, normalBufferSize, 0, &normalData) != VK_SUCCESS) {
-		throw std::runtime_error("failed to map memory!");
-	};
-		memcpy(normalData, normalVertices.data(), (size_t) normalBufferSize);
-	vkUnmapMemory(logicalDevice, normalStagingBufferMemory);
-
-	createBuffer(normalBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, normalVertexBuffer, normalVertexBufferMemory);
-	copyBuffer(normalStagingBuffer, normalVertexBuffer, normalBufferSize);
-
-	vkDestroyBuffer(logicalDevice, normalStagingBuffer, nullptr);
-	vkFreeMemory(logicalDevice, normalStagingBufferMemory, nullptr);
-}
-
-void Engine::initializeIndexBuffer() {
-    VkDeviceSize bufferSize = sizeof(positionIndices[0]) * positionIndices.size();
+	 VkDeviceSize bufferSize = sizeof(vertexList[0]) * vertexList.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -845,12 +766,32 @@ void Engine::initializeIndexBuffer() {
 
     void* data;
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, positionIndices.data(), (size_t) bufferSize);
+        memcpy(data, vertexList.data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, positionIndexBuffer, positionIndexBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
-    copyBuffer(stagingBuffer, positionIndexBuffer, bufferSize);
+    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+}
+
+void Engine::initializeIndexBuffer() {
+    VkDeviceSize bufferSize = sizeof(indexList[0]) * indexList.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, indexList.data(), (size_t) bufferSize);
+    vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
     vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
@@ -991,13 +932,11 @@ void Engine::initializeCommandBuffer() {
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &positionVertexBuffer, offsets);
-			vkCmdBindVertexBuffers(commandBuffers[i], 1, 1, &textureCoordinateVertexBuffer, offsets);
-			vkCmdBindVertexBuffers(commandBuffers[i], 2, 1, &normalVertexBuffer, offsets);
-			vkCmdBindIndexBuffer(commandBuffers[i], positionIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(positionIndices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indexList.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -1396,11 +1335,8 @@ void Engine::quit() {
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
-    vkDestroyBuffer(logicalDevice, positionIndexBuffer, nullptr);
-    vkFreeMemory(logicalDevice, positionIndexBufferMemory, nullptr);
-
-	vkDestroyBuffer(logicalDevice, positionVertexBuffer, nullptr);
-    vkFreeMemory(logicalDevice, positionVertexBufferMemory, nullptr);
+    vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
+    vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
 	
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(logicalDevice, renderFinishedSemaphores[i], nullptr);

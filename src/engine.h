@@ -14,6 +14,17 @@
 #include <unordered_map>
 #include <iostream>
 
+struct Vertex {
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec2 textureCoordinate;
+
+	static std::vector<VkVertexInputBindingDescription> getBindingDescription();
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+
+	bool operator==(const Vertex& other) const;
+};
+
 class Engine {
 private:
 	GLFWwindow* window;
@@ -46,22 +57,14 @@ private:
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 
-	std::vector<glm::vec3> positionVertices;
-	std::vector<glm::vec3> normalVertices;
-	std::vector<glm::vec2> textureCoordinateVertices;
-	std::vector<uint32_t> positionIndices;
+	std::vector<Vertex> vertexList;
+	std::vector<uint32_t> indexList;
+	
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
 
-	VkBuffer positionVertexBuffer;
-	VkDeviceMemory positionVertexBufferMemory;
-
-	VkBuffer normalVertexBuffer;
-	VkDeviceMemory normalVertexBufferMemory;
-
-	VkBuffer textureCoordinateVertexBuffer;
-	VkDeviceMemory textureCoordinateVertexBufferMemory;
-
-	VkBuffer positionIndexBuffer;
-	VkDeviceMemory positionIndexBufferMemory;
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
 
 	std::vector<VkBuffer> coordinateObjectBuffer;
 	std::vector<VkDeviceMemory> coordinateObjectBufferMemory;
