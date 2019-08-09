@@ -14,6 +14,51 @@
 #include <unordered_map>
 #include <iostream>
 
+#include "nv_helpers_vk/BottomLevelASGenerator.h"
+#include "nv_helpers_vk/TopLevelASGenerator.h"
+#include "nv_helpers_vk/VKHelpers.h"
+
+struct GeometryInstance {
+	VkBuffer vertexBuffer;
+	uint32_t vertexCount;
+	VkDeviceSize vertexOffset;
+	VkBuffer indexBuffer;
+	uint32_t indexCount;
+	VkDeviceSize indexOffset;
+	glm::mat4x4 transform;
+};
+
+struct AccelerationStructure {
+	VkBuffer scratchBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory scratchMem = VK_NULL_HANDLE;
+	VkBuffer resultBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory resultMem = VK_NULL_HANDLE;
+	VkBuffer instancesBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory instancesMem = VK_NULL_HANDLE;
+	VkAccelerationStructureNV structure = VK_NULL_HANDLE;
+};
+
+struct Camera {
+	glm::vec3 position;
+	glm::vec3 front;
+	glm::vec3 up;
+	float pitch;
+	float yaw;
+};
+
+struct CoordinateObject {
+    alignas(16) glm::mat4 modelMatrix;
+    alignas(16) glm::mat4 viewMatrix;
+    alignas(16) glm::mat4 projectionMatrix;
+};
+
+struct LightObject {
+    alignas(16) glm::vec3 lightPosition;
+    alignas(16) glm::vec3 lightColor;
+
+    alignas(16) glm::vec3 viewPosition;
+};
+
 struct Vertex {
 	glm::vec3 position;
 	glm::vec3 normal;
@@ -27,6 +72,25 @@ struct Vertex {
 
 class Engine {
 private:
+	VkPhysicalDeviceRayTracingPropertiesNV m_raytracingProperties = {};
+	std::vector<GeometryInstance> m_geometryInstances;
+	nv_helpers_vk::TopLevelASGenerator m_topLevelASGenerator;
+	AccelerationStructure m_topLevelAS;
+	std::vector<AccelerationStructure> m_bottomLevelAS;
+
+	void initializeRayTracing();
+	void initializeGeometryInstances();
+	void initializeAccelerationStructures();
+
+	AccelerationStructure createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers);
+	void createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly);
+
+	Camera camera;
+	CoordinateObject coordinateObject;
+	LightObject lightObject;
+
+	float currentModelRotation = 0.01f;
+
 	GLFWwindow* window;
 	VkSurfaceKHR surface;
 
@@ -36,10 +100,12 @@ private:
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
 
-	uint32_t queueFamilyIndex;
-	uint32_t queuePresentIndex;
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
+    uint32_t graphicsQueueFamilyIndex;
+    uint32_t computeQueueFamilyIndex;
+    uint32_t transferQueueFamilyIndex;
+    VkQueue graphicsQueue;
+    VkQueue computeQueue;
+    VkQueue transferQueue;
 
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> swapChainImages;

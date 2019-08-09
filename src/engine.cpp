@@ -21,29 +21,6 @@ const std::vector<const char*> deviceExtensions = {
 const std::string MODEL_PATH = "res/corgi.obj";
 const std::string TEXTURE_PATH = "res/corgi_texture.jpg";
 
-struct Camera {
-	glm::vec3 position;
-	glm::vec3 front;
-	glm::vec3 up;
-	float pitch;
-	float yaw;
-} camera;
-
-struct CoordinateObject {
-    alignas(16) glm::mat4 modelMatrix;
-    alignas(16) glm::mat4 viewMatrix;
-    alignas(16) glm::mat4 projectionMatrix;
-} coordinateObject;
-
-struct LightObject {
-    alignas(16) glm::vec3 lightPosition;
-    alignas(16) glm::vec3 lightColor;
-
-    alignas(16) glm::vec3 viewPosition;
-} lightObject;
-
-float currentModelRotation = 0.01f;
-
 std::vector<VkVertexInputBindingDescription> Vertex::getBindingDescription() {
 	std::vector<VkVertexInputBindingDescription> bindingDescription(1);
 	bindingDescription[0].binding = 0;
@@ -118,8 +95,13 @@ void Engine::initialize() {
 	initializeImageViews();
 	initializeRenderPass();
 	initializeDescriptorSetLayout();
-	initializeGraphicsPipeline();
 	initializeCommandPool();
+
+	initializeRayTracing();
+	initializeGeometryInstances();
+	initializeAccelerationStructures();
+
+	initializeGraphicsPipeline();
 	initializeDepthResources();
 	initializeFramebuffers();
 
@@ -137,6 +119,157 @@ void Engine::initialize() {
 
 	initializeCommandBuffer();
 	initializeSyncObjects();
+}
+
+void Engine::initializeRayTracing() {
+	m_raytracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+	m_raytracingProperties.pNext = nullptr;
+	m_raytracingProperties.maxRecursionDepth = 0;
+	m_raytracingProperties.shaderGroupHandleSize = 0;
+	VkPhysicalDeviceProperties2 props;
+	props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	props.pNext = &m_raytracingProperties;
+	props.properties = {};
+	vkGetPhysicalDeviceProperties2(physicalDevice, &props);
+}
+
+void Engine::initializeGeometryInstances() {
+	glm::mat4x4 mat = glm::mat4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+	m_geometryInstances.push_back(
+		{vertexBuffer, static_cast<uint32_t>(vertexList.size()), 0, indexBuffer, static_cast<uint32_t>(indexList.size()), 0, mat}
+	);
+}
+
+AccelerationStructure Engine::createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers) {
+	nv_helpers_vk::BottomLevelASGenerator bottomLevelAS;
+
+	for(const auto& buffer : vVertexBuffers) {
+		if(buffer.indexBuffer == VK_NULL_HANDLE) {
+			bottomLevelAS.AddVertexBuffer(buffer.vertexBuffer, buffer.vertexOffset, buffer.vertexCount,
+				sizeof(Vertex), VK_NULL_HANDLE, 0);
+		}
+		else {
+			bottomLevelAS.AddVertexBuffer(buffer.vertexBuffer, buffer.vertexOffset, buffer.vertexCount,
+				sizeof(Vertex), buffer.indexBuffer, buffer.indexOffset,
+				buffer.indexCount, VK_NULL_HANDLE, 0);
+		}
+	}
+	AccelerationStructure buffers;
+
+	buffers.structure = bottomLevelAS.CreateAccelerationStructure(logicalDevice, VK_FALSE);
+
+	VkDeviceSize scratchSizeInBytes = 0;
+	VkDeviceSize resultSizeInBytes = 0;
+	bottomLevelAS.ComputeASBufferSizes(logicalDevice, buffers.structure, &scratchSizeInBytes,
+		&resultSizeInBytes);
+
+	nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, scratchSizeInBytes,
+		VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &buffers.scratchBuffer,
+		&buffers.scratchMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, resultSizeInBytes,
+		VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &buffers.resultBuffer,
+		&buffers.resultMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	bottomLevelAS.Generate(logicalDevice, commandBuffer, buffers.structure, buffers.scratchBuffer,
+		0, buffers.resultBuffer, buffers.resultMem, false, VK_NULL_HANDLE);
+
+	return buffers;
+}
+
+void Engine::createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly) {
+	if(!updateOnly) {
+		for(size_t i = 0; i < instances.size(); i++) {
+			m_topLevelASGenerator.AddInstance(instances[i].first, instances[i].second,
+				static_cast<uint32_t>(i), static_cast<uint32_t>(i));
+		}
+
+		m_topLevelAS.structure =
+			m_topLevelASGenerator.CreateAccelerationStructure(logicalDevice, VK_TRUE);
+
+		VkDeviceSize scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
+			m_topLevelASGenerator.ComputeASBufferSizes(logicalDevice, m_topLevelAS.structure,
+			&scratchSizeInBytes, &resultSizeInBytes,
+			&instanceDescsSizeInBytes);
+
+		nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, scratchSizeInBytes,
+			VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &m_topLevelAS.scratchBuffer,
+			&m_topLevelAS.scratchMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		nv_helpers_vk::createBuffer(physicalDevice, logicalDevice, resultSizeInBytes,
+			VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, &m_topLevelAS.resultBuffer,
+			&m_topLevelAS.resultMem, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		nv_helpers_vk::createBuffer(physicalDevice, logicalDevice,
+			instanceDescsSizeInBytes, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
+			&m_topLevelAS.instancesBuffer, &m_topLevelAS.instancesMem,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+			| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	}
+
+	m_topLevelASGenerator.Generate(logicalDevice, commandBuffer, m_topLevelAS.structure,
+		m_topLevelAS.scratchBuffer, 0, m_topLevelAS.resultBuffer,
+		m_topLevelAS.resultMem, m_topLevelAS.instancesBuffer,
+		m_topLevelAS.instancesMem, updateOnly,
+		updateOnly ? m_topLevelAS.structure : VK_NULL_HANDLE);
+}
+
+void Engine::initializeAccelerationStructures() {
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo;
+	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAllocateInfo.pNext = nullptr;
+	commandBufferAllocateInfo.commandPool = commandPool;
+	commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferAllocateInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+	VkResult code =
+		vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer);
+	if(code != VK_SUCCESS) {
+		throw std::logic_error("rt vkAllocateCommandBuffers failed");
+	}
+
+	VkCommandBufferBeginInfo beginInfo;
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.pNext = nullptr;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	beginInfo.pInheritanceInfo = nullptr;
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	m_bottomLevelAS.resize(m_geometryInstances.size());
+
+	std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>> instances;
+
+	for(size_t i = 0; i < m_geometryInstances.size(); i++) {
+		m_bottomLevelAS[i] = createBottomLevelAS(
+			commandBuffer, {
+       			{m_geometryInstances[i].vertexBuffer, m_geometryInstances[i].vertexCount,
+        		m_geometryInstances[i].vertexOffset, m_geometryInstances[i].indexBuffer,
+        		m_geometryInstances[i].indexCount, m_geometryInstances[i].indexOffset},
+   			}
+   		);
+
+		instances.push_back({m_bottomLevelAS[i].structure, m_geometryInstances[i].transform});
+	}
+
+	createTopLevelAS(commandBuffer, instances, VK_FALSE);
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo;
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pNext = nullptr;
+	submitInfo.waitSemaphoreCount = 0;
+	submitInfo.pWaitSemaphores = nullptr;
+	submitInfo.pWaitDstStageMask = nullptr;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = 0;
+	submitInfo.pSignalSemaphores = nullptr;
+
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);
+	vkFreeCommandBuffers(logicalDevice, commandPool, 1,
+   		&commandBuffer);
 }
 
 std::vector<int> keyDownList;
@@ -221,46 +354,78 @@ void Engine::initializePhysicalDevice() {
 }
 
 void Engine::initializeLogicalDevice() {
-	queueFamilyIndex = -1;
-	queuePresentIndex = -1;
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+	const VkQueueFlagBits askingFlags[3] = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
+    uint32_t queuesIndices[3] = { ~0u, ~0u, ~0u };
 
-	for (int x = 0; x < queueFamilies.size() && queueFamilyIndex == -1; x++) {
-		if (queueFamilies[x].queueCount > 0 && queueFamilies[x].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-			queueFamilyIndex = x;
-		}
+    uint32_t queueFamilyPropertyCount;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
 
-		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, x, surface, &presentSupport);
+    for (size_t i = 0; i < 3; ++i) {
+        const VkQueueFlagBits flag = askingFlags[i];
+        uint32_t& queueIdx = queuesIndices[i];
 
-		if (queueFamilies[x].queueCount > 0 && presentSupport) {
-			queuePresentIndex = x;
-		}
-	}
+        if (flag == VK_QUEUE_COMPUTE_BIT) {
+            for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
+                   !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+                    queueIdx = j;
+                    break;
+                }
+            }
+        } else if (flag == VK_QUEUE_TRANSFER_BIT) {
+            for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+                   !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+                   !(queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                    queueIdx = j;
+                    break;
+                }
+            }
+        }
 
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = {queueFamilyIndex, queuePresentIndex};
+        if (queueIdx == ~0u) {
+            for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                if (queueFamilyProperties[j].queueFlags & flag) {
+                    queueIdx = j;
+                    break;
+                }
+            }
+        }
+    }
 
-	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies) {
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = queueFamily;
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
-		
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
+    graphicsQueueFamilyIndex = queuesIndices[0];
+    computeQueueFamilyIndex = queuesIndices[1];
+    transferQueueFamilyIndex = queuesIndices[2];
+
+    std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos;
+    const float priority = 0.0f;
+
+    VkDeviceQueueCreateInfo deviceQueueCreateInfo;
+    deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    deviceQueueCreateInfo.pNext = nullptr;
+    deviceQueueCreateInfo.flags = 0;
+    deviceQueueCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
+    deviceQueueCreateInfo.queueCount = 1;
+    deviceQueueCreateInfo.pQueuePriorities = &priority;
+    deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+
+    if (computeQueueFamilyIndex != graphicsQueueFamilyIndex) {
+        deviceQueueCreateInfo.queueFamilyIndex = computeQueueFamilyIndex;
+        deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+    }
+    if (transferQueueFamilyIndex != graphicsQueueFamilyIndex && transferQueueFamilyIndex != computeQueueFamilyIndex) {
+        deviceQueueCreateInfo.queueFamilyIndex = transferQueueFamilyIndex;
+        deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+    }
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
+	createInfo.queueCreateInfoCount = static_cast<uint32_t>(deviceQueueCreateInfos.size());
+	createInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
 	createInfo.pEnabledFeatures = &deviceFeatures;
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -269,8 +434,10 @@ void Engine::initializeLogicalDevice() {
 	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create logical device!");
 	}
-	vkGetDeviceQueue(logicalDevice, queueFamilyIndex, 0, &graphicsQueue);
-	vkGetDeviceQueue(logicalDevice, queuePresentIndex, 0, &presentQueue);
+
+    vkGetDeviceQueue(logicalDevice, graphicsQueueFamilyIndex, 0, &graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, computeQueueFamilyIndex, 0, &computeQueue);
+    vkGetDeviceQueue(logicalDevice, transferQueueFamilyIndex, 0, &transferQueue);
 }
 
 void Engine::initializeSwapChain() {
@@ -325,8 +492,6 @@ void Engine::initializeSwapChain() {
 		imageCount = capabilities.maxImageCount;
 	}
 
-	uint32_t queueFamilyIndices[] = {queueFamilyIndex, queuePresentIndex};
-
 	VkSwapchainCreateInfoKHR createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = surface;
@@ -336,14 +501,9 @@ void Engine::initializeSwapChain() {
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	if (queueFamilyIndex != queuePresentIndex) {
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
-	} else {
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	}
+	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+   	createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
 
 	createInfo.preTransform = capabilities.currentTransform;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -651,7 +811,7 @@ void Engine::initializeFramebuffers() {
 void Engine::initializeCommandPool() {
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.queueFamilyIndex = queueFamilyIndex;
+	poolInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
 
 	if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
@@ -1271,7 +1431,7 @@ void Engine::render() {
 
 	presentInfo.pImageIndices = &imageIndex;
 
-	vkQueuePresentKHR(presentQueue, &presentInfo);
+	vkQueuePresentKHR(graphicsQueue, &presentInfo);
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

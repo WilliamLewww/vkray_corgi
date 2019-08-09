@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"enable",
+				"enableRayTracing\tabc"
+			],
+			[
+				"textu",
+				"textureCoordinate\tabc"
+			],
+			[
 				"SCR",
 				"SCREENHEIGHT\tabc"
 			],
@@ -384,10 +392,6 @@
 				"textureHandleArray\t(engine.cpp)"
 			],
 			[
-				"textu",
-				"textureSamplerLocationHandle\tabc"
-			],
-			[
 				"Rectan",
 				"RectangleTextured\t(geometry.h)"
 			],
@@ -510,10 +514,6 @@
 			[
 				"tempCom",
 				"tempComponentMultiIndexList\tabc"
-			],
-			[
-				"tempComp",
-				"tempComponentMultiList\tabc"
 			]
 		]
 	},
@@ -523,7 +523,7 @@
 			"file": "project.sublime-project",
 			"settings":
 			{
-				"buffer_size": 2032,
+				"buffer_size": 2180,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -532,7 +532,34 @@
 			"file": "src/engine.cpp",
 			"settings":
 			{
-				"buffer_size": 58332,
+				"buffer_size": 60624,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/engine.h",
+			"settings":
+			{
+				"buffer_size": 6139,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "shaders/phong.vert",
+			"settings":
+			{
+				"buffer_size": 787,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "shaders/phong.frag",
+			"settings":
+			{
+				"buffer_size": 1270,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -810,13 +837,11 @@
 	},
 	"expanded_folders":
 	[
-		"/C/Users/William/Desktop/vkray_corgi",
-		"/C/Users/William/Desktop/vkray_corgi/res",
-		"/C/Users/William/Desktop/vkray_corgi/shaders",
-		"/C/Users/William/Desktop/vkray_corgi/src"
+		"/C/Users/William/Desktop/vkray_corgi"
 	],
 	"file_history":
 	[
+		"/C/Libraries/vulkannv/nv_helpers_vk/DescriptorSetGenerator.h",
 		"/C/Users/William/Desktop/vkray_corgi/.gitignore",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/test.vert",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.vert",
@@ -943,8 +968,7 @@
 		"/Users/wlew/Desktop/Visualizer/client_vm/sample_s_json.txt",
 		"/Users/wlew/Desktop/Visualizer/server/client/src/engine.js",
 		"/Users/wlew/Desktop/Visualizer/client_vm/sb-show-deps",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/network.js",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/client.js"
+		"/Users/wlew/Desktop/Visualizer/server/client/src/network.js"
 	],
 	"find":
 	{
@@ -964,6 +988,37 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"initializeCommandPool",
+			"commandPool",
+			"VkCtx.getDevice()",
+			"VkCtx.getQueue()",
+			"createGeometryInstances",
+			"VkCtx.getPhysicalDevice()",
+			"VkCtx.getDevice()",
+			"VkCtx.getPhysicalDevice()",
+			"VkCtx.getDevice()",
+			"create_info",
+			"enableValidationLayers",
+			"validationLayers",
+			"deviceExtensions",
+			"VK_NV_RAY_TRACING_EXTENSION_NAME",
+			"deviceExtensions",
+			"validationLayers",
+			"VK_KHR_SWAPCHAIN_EXTENSION_NAME",
+			"positionIndexBuffer",
+			"positionIndexBufferMemory",
+			"positionIndexBuffer",
+			"positionIndices",
+			"indices",
+			"vertexHolder",
+			"VertexHolder",
+			"operator",
+			"getAttributeDescriptions",
+			"normalVertexBuffer",
+			"positionVertexBuffer",
+			"positionStagingBuffer",
+			"getAttributeDescriptions",
+			"binding",
 			"vulkan_phong",
 			"Vulkan-Phong",
 			"beginSingleTimeCommands",
@@ -1060,38 +1115,7 @@
 			"framebufferSizeArg",
 			"m_framebufferSize",
 			"initializeGraphicsPipeline",
-			"initializeDescriptorSetLayout",
-			"initializeFramebuffer",
-			"createDescriptorSetLayout",
-			"m_allocator",
-			"initializeVulkan",
-			"m_allocator",
-			"initializeLogicalDevice",
-			"m_allocator",
-			"nullptr",
-			"initializeCommandBuffers",
-			"m_allocator",
-			"DescriptorPool",
-			"m_allocator",
-			"glfw",
-			"createWindowSurface",
-			"m_allocator",
-			"initializeSwapchain",
-			"m_allocator",
-			"initializeRenderPass",
-			"m_allocator",
-			"initializeImageViews",
-			"m_allocator",
-			"initializeFramebuffer",
-			"allocator",
-			"m_alloc",
-			"VkCtx",
-			"DrawFrame",
-			"frameBuffer",
-			"Initialize",
-			"VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV",
-			"maxRecursionDepth",
-			"framePresent"
+			"initializeDescriptorSetLayout"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1118,15 +1142,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2032,
+						"buffer_size": 2180,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								599,
-								599
+								327,
+								327
 							]
 						],
 						"settings":
@@ -1135,10 +1159,10 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 78.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
@@ -1147,15 +1171,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 58332,
+						"buffer_size": 60624,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								691,
-								691
+								3570,
+								3570
 							]
 						],
 						"settings":
@@ -1163,10 +1187,96 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1092.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/engine.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6139,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2722,
+								2735
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1128.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "shaders/phong.vert",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 787,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								787,
+								787
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "shaders/phong.frag",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1270,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								74,
+								74
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
 					"type": "text"
 				}
 			]
@@ -1604,7 +1714,7 @@
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
+	"side_bar_visible": false,
 	"side_bar_width": 122.0,
 	"status_bar_visible": true,
 	"template_settings":
