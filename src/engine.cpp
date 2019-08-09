@@ -272,6 +272,16 @@ void Engine::initializeAccelerationStructures() {
    		&commandBuffer);
 }
 
+void Engine::destroyAccelerationStructure(const AccelerationStructure& as) {
+	vkDestroyBuffer(logicalDevice, as.scratchBuffer, nullptr);
+	vkFreeMemory(logicalDevice, as.scratchMem, nullptr);
+	vkDestroyBuffer(logicalDevice, as.resultBuffer, nullptr);
+	vkFreeMemory(logicalDevice, as.resultMem, nullptr);
+	vkDestroyBuffer(logicalDevice, as.instancesBuffer, nullptr);
+	vkFreeMemory(logicalDevice, as.instancesMem, nullptr);
+	vkDestroyAccelerationStructureNV(logicalDevice, as.structure, nullptr);
+}
+
 std::vector<int> keyDownList;
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (action == GLFW_PRESS) {
@@ -354,6 +364,13 @@ void Engine::initializePhysicalDevice() {
 }
 
 void Engine::initializeLogicalDevice() {
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+	for (int x = 0; x < queueFamilyCount; x++) {
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, x, surface, &presentSupport);
+	}
+
 	const VkQueueFlagBits askingFlags[3] = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
     uint32_t queuesIndices[3] = { ~0u, ~0u, ~0u };
 
@@ -1481,6 +1498,12 @@ void Engine::updateUniformBuffer(uint32_t currentImage) {
 }
 
 void Engine::quit() {
+	destroyAccelerationStructure(m_topLevelAS);
+
+	for(auto& as : m_bottomLevelAS) {
+		destroyAccelerationStructure(as);
+	}
+
 	vkFreeCommandBuffers(logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 	
 	vkDestroySampler(logicalDevice, textureSampler, nullptr);

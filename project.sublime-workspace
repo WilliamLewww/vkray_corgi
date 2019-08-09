@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"graphics",
+				"graphicsQueueFamilyIndex\tabc"
+			],
+			[
+				"grap",
+				"graphicsQueue\tabc"
+			],
+			[
 				"enable",
 				"enableRayTracing\tabc"
 			],
@@ -506,14 +514,6 @@
 			[
 				"extern",
 				"external_context.h\t(external_context.cpp)"
-			],
-			[
-				"GLF",
-				"GLFW_TRUE\tabc"
-			],
-			[
-				"tempCom",
-				"tempComponentMultiIndexList\tabc"
 			]
 		]
 	},
@@ -532,7 +532,7 @@
 			"file": "src/engine.cpp",
 			"settings":
 			{
-				"buffer_size": 60624,
+				"buffer_size": 62823,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -541,7 +541,7 @@
 			"file": "src/engine.h",
 			"settings":
 			{
-				"buffer_size": 6139,
+				"buffer_size": 6301,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -988,6 +988,19 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"VkCtx.getDevice()",
+			"mSurface",
+			"mGraphicsQueueFamilyIndex",
+			"mPhysicalDevice",
+			"vkGetPhysicalDeviceSurfaceSupportKHR",
+			"mDevice",
+			"mTransferQueueFamilyIndex",
+			"mGraphicsQueueFamilyIndex",
+			"mComputeQueueFamilyIndex",
+			"priority",
+			"priority ",
+			"VkDeviceQueue",
+			"mPhysicalDevice",
 			"initializeCommandPool",
 			"commandPool",
 			"VkCtx.getDevice()",
@@ -1102,20 +1115,7 @@
 			"geometryinstance",
 			"initializeRayTracing",
 			"nv_helpers_vk",
-			"m_raytracingProperties",
-			"initializeGraphicsPipeline",
-			"initializeRayTracing",
-			"initializeGraphicsPipeline",
-			"pos",
-			"VkCtx.getDevice()",
-			"code",
-			"createShaderModule",
-			"initializeGraphicsPipeline",
-			"readFile",
-			"framebufferSizeArg",
-			"m_framebufferSize",
-			"initializeGraphicsPipeline",
-			"initializeDescriptorSetLayout"
+			"m_raytracingProperties"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1171,15 +1171,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 60624,
+						"buffer_size": 62823,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3570,
-								3570
+								59577,
+								59577
 							]
 						],
 						"settings":
@@ -1187,7 +1187,7 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 1092.0,
+						"translation.y": 18683.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -1199,15 +1199,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6139,
+						"buffer_size": 6301,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2722,
-								2735
+								2158,
+								2158
 							]
 						],
 						"settings":
@@ -1216,7 +1216,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1128.0,
+						"translation.y": 660.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,

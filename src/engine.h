@@ -82,6 +82,8 @@ private:
 	void initializeGeometryInstances();
 	void initializeAccelerationStructures();
 
+	void destroyAccelerationStructure(const AccelerationStructure& as);
+
 	AccelerationStructure createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers);
 	void createTopLevelAS(VkCommandBuffer commandBuffer, const std::vector<std::pair<VkAccelerationStructureNV, glm::mat4x4>>& instances, VkBool32 updateOnly);
 
