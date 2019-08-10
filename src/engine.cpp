@@ -65,6 +65,31 @@ namespace std {
     };
 }
 
+std::vector<int> keyDownList;
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (action == GLFW_PRESS) {
+		keyDownList.push_back(key);
+	}
+
+	if (action == GLFW_RELEASE) {
+		for (int x = 0; x < keyDownList.size(); x++) {
+			if (key == keyDownList[x]) {
+				keyDownList.erase(keyDownList.begin() + x);
+			}
+		}
+	}
+}
+
+bool checkKeyDown(int key) {
+	for (int x = 0; x < keyDownList.size(); x++) {
+		if (key == keyDownList[x]) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void Engine::initialize() {
 	coordinateObject.modelMatrix = glm::mat4(1.0f);
 	coordinateObject.modelMatrix = glm::rotate(coordinateObject.modelMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -97,14 +122,6 @@ void Engine::initialize() {
 	initializeDescriptorSetLayout();
 	initializeCommandPool();
 
-	initializeRayTracing();
-	initializeGeometryInstances();
-	initializeAccelerationStructures();
-
-	initializeGraphicsPipeline();
-	initializeDepthResources();
-	initializeFramebuffers();
-
 	initializeTextureImage();
 	initializeTextureImageView();
 	initializeTextureSampler();
@@ -114,11 +131,21 @@ void Engine::initialize() {
 	initializeIndexBuffer();
 	initializeUniformBuffers();
 
+	initializeGraphicsPipeline();
+	initializeDepthResources();
+	initializeFramebuffers();
+
 	initializeDescriptorPool();
 	initializeDescriptorSets();
 
 	initializeCommandBuffer();
 	initializeSyncObjects();
+
+	initializeRayTracing();
+	initializeGeometryInstances();
+	initializeAccelerationStructures();
+	initializeRaytracingDescriptorSet();
+	initializeRaytracingPipeline();
 }
 
 void Engine::initializeRayTracing() {
@@ -272,6 +299,125 @@ void Engine::initializeAccelerationStructures() {
    		&commandBuffer);
 }
 
+void Engine::initializeRaytracingDescriptorSet() {
+	VkBufferMemoryBarrier bmb = {};
+	bmb.sType                 = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	bmb.pNext                 = nullptr;
+	bmb.srcAccessMask         = 0;
+	bmb.dstAccessMask         = VK_ACCESS_SHADER_READ_BIT;
+	bmb.srcQueueFamilyIndex   = VK_QUEUE_FAMILY_IGNORED;
+	bmb.dstQueueFamilyIndex   = VK_QUEUE_FAMILY_IGNORED;
+	bmb.offset                = 0;
+	bmb.size                  = VK_WHOLE_SIZE;
+
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+	bmb.buffer = vertexBuffer;
+	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1, &bmb, 0, nullptr);
+	bmb.buffer = indexBuffer;
+	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1, &bmb, 0, nullptr);
+	endSingleTimeCommands(commandBuffer);
+
+	// Add the bindings to the resources
+	// Top-level acceleration structure, usable by both the ray generation and the
+	// closest hit (to shoot shadow rays)
+	m_rtDSG.AddBinding(0, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+	// Raytracing output
+	m_rtDSG.AddBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+	// Camera information
+	m_rtDSG.AddBinding(2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+	// Scene data
+	// Vertex buffer
+	m_rtDSG.AddBinding(3, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+	// Index buffer
+	m_rtDSG.AddBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+
+	// Create the descriptor pool and layout
+	m_rtDescriptorPool      = m_rtDSG.GeneratePool(logicalDevice);
+	m_rtDescriptorSetLayout = m_rtDSG.GenerateLayout(logicalDevice);
+
+	// Generate the descriptor set
+	m_rtDescriptorSet =
+	m_rtDSG.GenerateSet(logicalDevice, m_rtDescriptorPool, m_rtDescriptorSetLayout);
+
+	// Bind the actual resources into the descriptor set
+	// Top-level acceleration structure
+	VkWriteDescriptorSetAccelerationStructureNV descriptorAccelerationStructureInfo;
+	descriptorAccelerationStructureInfo.sType =
+	VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+	descriptorAccelerationStructureInfo.pNext                      = nullptr;
+	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+	descriptorAccelerationStructureInfo.pAccelerationStructures    = &m_topLevelAS.structure;
+
+	m_rtDSG.Bind(m_rtDescriptorSet, 0, {descriptorAccelerationStructureInfo});
+
+	// Camera matrices
+	VkDescriptorBufferInfo camInfo = {};
+	camInfo.buffer                 = coordinateObjectBuffer[0];
+	camInfo.offset                 = 0;
+	camInfo.range                  = sizeof(CoordinateObject);
+
+	m_rtDSG.Bind(m_rtDescriptorSet, 2, {camInfo});
+
+	// Vertex buffer
+	VkDescriptorBufferInfo vertexInfo = {};
+	vertexInfo.buffer                 = vertexBuffer;
+	vertexInfo.offset                 = 0;
+	vertexInfo.range                  = VK_WHOLE_SIZE;
+
+	m_rtDSG.Bind(m_rtDescriptorSet, 3, {vertexInfo});
+
+	// Index buffer
+	VkDescriptorBufferInfo indexInfo = {};
+	indexInfo.buffer                 = indexBuffer;
+	indexInfo.offset                 = 0;
+	indexInfo.range                  = VK_WHOLE_SIZE;
+
+	m_rtDSG.Bind(m_rtDescriptorSet, 4, {indexInfo});
+
+	// Copy the bound resource handles into the descriptor set
+	m_rtDSG.UpdateSetContents(logicalDevice, m_rtDescriptorSet);
+}
+
+void Engine::updateRaytracingRenderTarget(VkImageView target) {
+	// Output buffer
+	VkDescriptorImageInfo descriptorOutputImageInfo;
+	descriptorOutputImageInfo.sampler     = nullptr;
+	descriptorOutputImageInfo.imageView   = target;
+	descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+	m_rtDSG.Bind(m_rtDescriptorSet, 1, {descriptorOutputImageInfo});
+	// Copy the bound resource handles into the descriptor set
+	m_rtDSG.UpdateSetContents(logicalDevice, m_rtDescriptorSet);
+}
+
+void Engine::initializeRaytracingPipeline() {
+	nv_helpers_vk::RayTracingPipelineGenerator pipelineGen;
+
+	VkShaderModule rayGenModule = createShaderModule(readFile("shaders/rgen.spv"));
+	m_rayGenIndex               = pipelineGen.AddRayGenShaderStage(rayGenModule);
+
+	VkShaderModule missModule = createShaderModule(readFile("shaders/rmiss.spv"));
+	m_missIndex               = pipelineGen.AddMissShaderStage(missModule);
+
+	m_hitGroupIndex = pipelineGen.StartHitGroup();
+
+	VkShaderModule closestHitModule = createShaderModule(readFile("shaders/rchit.spv"));
+	pipelineGen.AddHitShaderStage(closestHitModule, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+	pipelineGen.EndHitGroup();
+
+	pipelineGen.SetMaxRecursionDepth(1);
+
+	pipelineGen.Generate(logicalDevice, m_rtDescriptorSetLayout, &m_rtPipeline,
+	                   &m_rtPipelineLayout);
+
+	vkDestroyShaderModule(logicalDevice, rayGenModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, missModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, closestHitModule, nullptr);
+}
+
 void Engine::destroyAccelerationStructure(const AccelerationStructure& as) {
 	vkDestroyBuffer(logicalDevice, as.scratchBuffer, nullptr);
 	vkFreeMemory(logicalDevice, as.scratchMem, nullptr);
@@ -280,31 +426,6 @@ void Engine::destroyAccelerationStructure(const AccelerationStructure& as) {
 	vkDestroyBuffer(logicalDevice, as.instancesBuffer, nullptr);
 	vkFreeMemory(logicalDevice, as.instancesMem, nullptr);
 	vkDestroyAccelerationStructureNV(logicalDevice, as.structure, nullptr);
-}
-
-std::vector<int> keyDownList;
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (action == GLFW_PRESS) {
-		keyDownList.push_back(key);
-	}
-
-	if (action == GLFW_RELEASE) {
-		for (int x = 0; x < keyDownList.size(); x++) {
-			if (key == keyDownList[x]) {
-				keyDownList.erase(keyDownList.begin() + x);
-			}
-		}
-	}
-}
-
-bool checkKeyDown(int key) {
-	for (int x = 0; x < keyDownList.size(); x++) {
-		if (key == keyDownList[x]) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
 void Engine::initializeWindow() {
@@ -939,14 +1060,14 @@ void Engine::initializeVertexBuffer() {
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, vertexList.data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
@@ -959,14 +1080,14 @@ void Engine::initializeIndexBuffer() {
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, indexList.data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 

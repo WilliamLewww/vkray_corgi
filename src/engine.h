@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <iostream>
 
+#include "nv_helpers_vk/RaytracingPipelineGenerator.h"
+#include "nv_helpers_vk/DescriptorSetGenerator.h"
 #include "nv_helpers_vk/BottomLevelASGenerator.h"
 #include "nv_helpers_vk/TopLevelASGenerator.h"
 #include "nv_helpers_vk/VKHelpers.h"
@@ -77,11 +79,24 @@ private:
 	nv_helpers_vk::TopLevelASGenerator m_topLevelASGenerator;
 	AccelerationStructure m_topLevelAS;
 	std::vector<AccelerationStructure> m_bottomLevelAS;
+	nv_helpers_vk::DescriptorSetGenerator m_rtDSG;
+	VkDescriptorPool m_rtDescriptorPool;
+	VkDescriptorSetLayout m_rtDescriptorSetLayout;
+	VkDescriptorSet m_rtDescriptorSet;
+	VkPipelineLayout m_rtPipelineLayout = VK_NULL_HANDLE;
+	VkPipeline m_rtPipeline = VK_NULL_HANDLE;
+
+	uint32_t m_rayGenIndex;
+	uint32_t m_hitGroupIndex;
+	uint32_t m_missIndex;
 
 	void initializeRayTracing();
 	void initializeGeometryInstances();
 	void initializeAccelerationStructures();
+	void initializeRaytracingDescriptorSet();
+	void initializeRaytracingPipeline();
 
+	void updateRaytracingRenderTarget(VkImageView target);
 	void destroyAccelerationStructure(const AccelerationStructure& as);
 
 	AccelerationStructure createBottomLevelAS(VkCommandBuffer commandBuffer, std::vector<GeometryInstance> vVertexBuffers);

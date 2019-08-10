@@ -4,6 +4,18 @@
 		"selected_items":
 		[
 			[
+				"inde",
+				"indexBuffer\tabc"
+			],
+			[
+				"initializeDes",
+				"initializeRaytracingDescriptorSet\t(engine.h)"
+			],
+			[
+				"que",
+				"queueFamilyCount\tabc"
+			],
+			[
 				"graphics",
 				"graphicsQueueFamilyIndex\tabc"
 			],
@@ -114,10 +126,6 @@
 			[
 				"descir",
 				"descriptorSets\tabc"
-			],
-			[
-				"initializeDes",
-				"initializeDescriptorSets\tabc"
 			],
 			[
 				"UNI",
@@ -506,14 +514,6 @@
 			[
 				"frag",
 				"fragmentShaderString\tabc"
-			],
-			[
-				"vertex",
-				"vertexShaderString\tabc"
-			],
-			[
-				"extern",
-				"external_context.h\t(external_context.cpp)"
 			]
 		]
 	},
@@ -532,7 +532,7 @@
 			"file": "src/engine.cpp",
 			"settings":
 			{
-				"buffer_size": 62823,
+				"buffer_size": 67557,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -541,7 +541,7 @@
 			"file": "src/engine.h",
 			"settings":
 			{
-				"buffer_size": 6301,
+				"buffer_size": 6620,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -988,6 +988,7 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"VkDescriptorBufferInfo",
 			"VkCtx.getDevice()",
 			"mSurface",
 			"mGraphicsQueueFamilyIndex",
@@ -1114,8 +1115,7 @@
 			"CreateBottomLevel",
 			"geometryinstance",
 			"initializeRayTracing",
-			"nv_helpers_vk",
-			"m_raytracingProperties"
+			"nv_helpers_vk"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1171,15 +1171,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 62823,
+						"buffer_size": 67557,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								59577,
-								59577
+								13097,
+								13097
 							]
 						],
 						"settings":
@@ -1187,7 +1187,7 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 18683.0,
+						"translation.y": 3932.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -1199,15 +1199,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6301,
+						"buffer_size": 6620,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2158,
-								2158
+								4254,
+								4268
 							]
 						],
 						"settings":
@@ -1216,7 +1216,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 660.0,
+						"translation.y": 1326.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
