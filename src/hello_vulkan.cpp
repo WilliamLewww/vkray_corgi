@@ -500,11 +500,11 @@ void HelloVulkan::createRaytracingPipeline()
 {
 	nv_helpers_vk::RayTracingPipelineGenerator pipelineGen;
 	// We use only one ray generation, that will implement the camera model
-	VkShaderModule rayGenModule = VkCtx.createShaderModule(readFile("shaders/raygen.spv"));
+	VkShaderModule rayGenModule = VkCtx.createShaderModule(readFile("shaders/rgen.spv"));
 	m_rayGenIndex               = pipelineGen.AddRayGenShaderStage(rayGenModule);
 	// The first miss shader is used to look-up the environment in case the rays
 	// from the camera miss the geometry
-	VkShaderModule missModule = VkCtx.createShaderModule(readFile("shaders/miss.spv"));
+	VkShaderModule missModule = VkCtx.createShaderModule(readFile("shaders/rmiss.spv"));
 	m_missIndex               = pipelineGen.AddMissShaderStage(missModule);
 
 	// The first hit group defines the shaders invoked when a ray shot from the
@@ -514,7 +514,7 @@ void HelloVulkan::createRaytracingPipeline()
 	// added as well.
 	m_hitGroupIndex = pipelineGen.StartHitGroup();
 
-	VkShaderModule closestHitModule = VkCtx.createShaderModule(readFile("shaders/closesthit.spv"));
+	VkShaderModule closestHitModule = VkCtx.createShaderModule(readFile("shaders/rchit.spv"));
 	pipelineGen.AddHitShaderStage(closestHitModule, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 	pipelineGen.EndHitGroup();
 
@@ -564,6 +564,7 @@ void HelloVulkan::createShaderBindingTable()
 										m_shaderBindingTableMem);
 }
 
+float currentRotation = 0.0f;
 //--------------------------------------------------------------------------------------------------
 // Called at each frame to update the camera matrix
 //
@@ -571,6 +572,10 @@ void HelloVulkan::updateUniformBuffer()
 {
 	UniformBufferObject ubo = {};
 	ubo.model               = glm::mat4(1);
+	ubo.model = glm::rotate(ubo.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	ubo.model = glm::rotate(ubo.model, glm::radians(currentRotation), glm::vec3(0.0f, 0.0f, 1.0f));
+	currentRotation += 0.01f;
+
 	ubo.modelIT             = glm::inverseTranspose(ubo.model);
 
 	ubo.view = CameraManip.getMatrix();
@@ -973,7 +978,7 @@ void HelloVulkan::createTextureImages(const std::vector<std::string>& textures)
 	{
 		std::stringstream o;
 		int               texWidth, texHeight, texChannels;
-		o << "../media/textures/" << texture;
+		o << "res/textures/" << texture;
 
 		stbi_uc* pixels =
 				stbi_load(o.str().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);

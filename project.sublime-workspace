@@ -4,6 +4,26 @@
 		"selected_items":
 		[
 			[
+				"update",
+				"updateUniformBuffer\tabc"
+			],
+			[
+				"SCR",
+				"SCREENHEIGHT\tabc"
+			],
+			[
+				"command",
+				"commandBuffer\tabc"
+			],
+			[
+				"initializePipe",
+				"initializeRaytracingPipeline\tabc"
+			],
+			[
+				"initializeRay",
+				"initializeRaytracingDescriptorSet\tabc"
+			],
+			[
 				"inde",
 				"indexBuffer\tabc"
 			],
@@ -32,24 +52,12 @@
 				"textureCoordinate\tabc"
 			],
 			[
-				"SCR",
-				"SCREENHEIGHT\tabc"
-			],
-			[
 				"comman",
 				"commandBuffer\tabc"
 			],
 			[
-				"initializeRay",
-				"initializeRaytracingPipeline"
-			],
-			[
 				"logica",
 				"logicalDevice\tabc"
-			],
-			[
-				"command",
-				"commandPool\tabc"
 			],
 			[
 				"allo",
@@ -506,62 +514,45 @@
 			[
 				"Re",
 				"RectangleGL\tabc"
-			],
-			[
-				"verte",
-				"vertexShaderString\tabc"
-			],
-			[
-				"frag",
-				"fragmentShaderString\tabc"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"file": "project.sublime-project",
+			"file": "main.cpp",
 			"settings":
 			{
-				"buffer_size": 2180,
+				"buffer_size": 11650,
 				"encoding": "UTF-8",
-				"line_ending": "Unix"
+				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "src/engine.cpp",
+			"file": "src/hello_vulkan.cpp",
 			"settings":
 			{
-				"buffer_size": 67557,
+				"buffer_size": 46451,
 				"encoding": "UTF-8",
-				"line_ending": "Unix"
+				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "src/engine.h",
+			"file": "src/hello_vulkan.h",
 			"settings":
 			{
-				"buffer_size": 6620,
+				"buffer_size": 4169,
 				"encoding": "UTF-8",
-				"line_ending": "Unix"
+				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "shaders/phong.vert",
+			"file": "src/obj_loader.h",
 			"settings":
 			{
-				"buffer_size": 787,
+				"buffer_size": 5248,
 				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "shaders/phong.frag",
-			"settings":
-			{
-				"buffer_size": 1270,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
+				"line_ending": "Windows"
 			}
 		}
 	],
@@ -761,6 +752,10 @@
 		"selected_items":
 		[
 			[
+				"color",
+				"UI: Select Color Scheme"
+			],
+			[
 				"lower",
 				"Convert Case: Lower Case"
 			],
@@ -783,10 +778,6 @@
 			[
 				"ari",
 				"Arithmetic"
-			],
-			[
-				"color",
-				"UI: Select Color Scheme"
 			],
 			[
 				"color sc",
@@ -837,39 +828,67 @@
 	},
 	"expanded_folders":
 	[
-		"/C/Users/William/Desktop/vkray_corgi"
+		"/C/Users/William/Desktop/vkray_corgi",
+		"/C/Users/William/Desktop/vkray_corgi/res",
+		"/C/Users/William/Desktop/vkray_corgi/shaders",
+		"/C/Users/William/Desktop/vkray_corgi/src"
 	],
 	"file_history":
 	[
+		"/C/Users/William/Desktop/vkray_corgi/shaders/raygen.rgen",
+		"/C/Users/William/Desktop/vkray_corgi/shaders/closesthit.rchit",
+		"/C/Users/William/Desktop/vkray_corgi/shaders/frag_shader.frag",
+		"/C/Users/William/Desktop/vkexamples/media/scenes/Medieval_building.obj",
+		"/C/Users/William/Desktop/vkexamples/media/scenes/Medieval_building.mtl",
+		"/C/Users/William/Desktop/vkray_corgi/res/cube_multi.obj",
+		"/C/Users/William/Desktop/vkray_corgi/res/corgi.mtl",
+		"/C/Users/William/Desktop/vkray_corgi/res/corgi.obj",
+		"/C/Users/William/Desktop/vkexamples/media/scenes/cube_multi.mtl",
+		"/C/Users/William/Desktop/vkexamples/media/scenes/cube_multi.obj",
+		"/C/Users/William/Desktop/vkexamples/media/scenes/cube.mtl",
+		"/C/Users/William/Desktop/vkray_corgi/src/obj_loader.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/src/vk_context.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/project.sublime-project",
+		"/C/Users/William/Desktop/vkexamples/VkExample1/main.cpp",
+		"/C/Users/William/Desktop/vkexamples/common/tiny_obj_loader.h",
+		"/C/Libraries/tinyobjloader-master/tiny_obj_loader.h",
+		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanapp.h",
+		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanapp.cpp",
+		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanhelpers.cpp",
+		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanhelpers.h",
+		"/C/Users/William/Desktop/vkray_corgi/src/hello_vulkan.h",
+		"/C/Users/William/Desktop/vkray_corgi/src/hello_vulkan.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/src/main.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/main.cpp",
+		"/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
+		"/C/Users/William/Desktop/vkexamples/common/vk_context.h",
+		"/C/Users/William/Desktop/vkray_corgi/src/application.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/src/application.h",
+		"/C/Users/William/Desktop/vkray_corgi/src/engine.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/src/engine.h",
+		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.h",
+		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.cpp",
+		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.h",
+		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.cpp",
+		"/C/Users/William/Desktop/vkexamples/common/manipulator.h",
+		"/C/Users/William/Desktop/vkexamples/common/manipulator.cpp",
+		"/C/Users/William/Desktop/VkRayTutorials/Source/01_InitRaytracing/01_InitRaytracing.cpp",
+		"/C/Users/William/Desktop/vkray_corgi/shaders/phong.frag",
+		"/C/Users/William/Desktop/vkray_corgi/shaders/phong.vert",
 		"/C/Libraries/vulkannv/nv_helpers_vk/DescriptorSetGenerator.h",
 		"/C/Users/William/Desktop/vkray_corgi/.gitignore",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/test.vert",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.vert",
 		"/C/Users/William/Desktop/vulkan_phong/project.sublime-project",
-		"/C/Users/William/Desktop/vkray_corgi/src/engine.cpp",
-		"/C/Users/William/Desktop/vkray_corgi/src/engine.h",
-		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.h",
-		"/C/Users/William/Desktop/vkexamples/common/vk_context.h",
-		"/C/Users/William/Desktop/vkexamples/common/vk_context.cpp",
-		"/C/Users/William/Desktop/vkexamples/VkExample1/main.cpp",
-		"/C/Users/William/Desktop/vkexamples/VkExample1/hello_vulkan.cpp",
-		"/C/Users/William/Desktop/vkray_corgi/shaders/raygen.rgen",
-		"/C/Users/William/Desktop/vkray_corgi/project.sublime-project",
-		"/C/Users/William/Desktop/vkray_corgi/shaders/closesthit.rchit",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/miss.rmiss",
 		"/C/Users/William/Desktop/vkray_corgi/external/vulkannv/nv_helpers_vk/DescriptorSetGenerator.h",
 		"/C/Libraries/vulkannv/nv_helpers_vk/BottomLevelASGenerator.cpp",
 		"/C/Libraries/vulkannv/nv_helpers_vk/BottomLevelASGenerator.h",
-		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.h",
-		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/Application.cpp",
 		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/RaytracingApplication.h",
 		"/C/Users/William/Desktop/VkRayTutorials/Source/Common/RaytracingApplication.cpp",
-		"/C/Users/William/Desktop/VkRayTutorials/Source/01_InitRaytracing/01_InitRaytracing.cpp",
 		"/C/Users/William/AppData/Roaming/Sublime Text 3/Packages/Terminal/Terminal.sublime-settings",
 		"/C/Users/William/Desktop/rtxON-master/src/rtxApp.cpp",
 		"/C/Users/William/Desktop/rtxON-master/src/rtxApp.h",
-		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanapp.h",
-		"/C/Users/William/Desktop/rtxON-master/src/framework/vulkanapp.cpp",
 		"/C/Users/William/Desktop/rtxON-master/src/main.cpp",
 		"/C/Users/William/Desktop/VkRayTutorials/Projects/01_InitRaytracing.vcxproj",
 		"/C/Users/William/Desktop/VkRayTutorials/Projects/01_InitRaytracing.vcxproj.filters",
@@ -883,7 +902,6 @@
 		"/C/Users/William/Desktop/VkRayTutorials/Source/02_AccelerationStructure/02_AccelerationStructure.cpp",
 		"/C/Users/William/Desktop/vkexamples/libs/vulkannv/nv_helpers_vk/VKHelpers.cpp",
 		"/C/Users/William/Desktop/vkexamples/libs/vulkannv/nv_helpers_vk/VKHelpers.h",
-		"/C/Users/William/Desktop/vkray_corgi/main.cpp",
 		"/C/Users/William/Desktop/vkexamples/libs/vulkannv/vulkan_raytracing.cpp",
 		"/C/Users/William/Desktop/vkray_corgi/shaders/basic.frag",
 		"/C/Users/William/Desktop/vulkan_phong/shaders/phong.frag",
@@ -944,31 +962,7 @@
 		"/C/Users/William Lew/Desktop/no_tears/shaders/avoid_uniform.vertex",
 		"/C/Users/William Lew/Desktop/no_tears/src/engine.h",
 		"/C/Users/William Lew/Desktop/no_tears/src/vector2.h",
-		"/C/Users/William Lew/Desktop/no_tears/src/vector2.cpp",
-		"/C/Users/William Lew/Desktop/no_tears/shaders/textured.vertex",
-		"/C/Users/William Lew/Desktop/no_tears/main.cpp",
-		"/C/Users/William Lew/Desktop/no_tears/old/src/engine.h",
-		"/C/Users/William Lew/Desktop/no_tears/old/src/engine.cpp",
-		"/C/Projects/ShaderFun/src/engine.cpp",
-		"/C/Users/William Lew/Desktop/no_tears/shaders/default.fragment",
-		"/C/Users/William Lew/Desktop/no_tears/shaders/default.vertex",
-		"/C/Users/William Lew/Desktop/part 2.txt",
-		"/C/Users/William Lew/Desktop/no_tears/src/external.cpp",
-		"/C/Users/William Lew/Desktop/vsa_gameboard/server/client/src/client.js",
-		"/C/Users/William Lew/Desktop/vsa_gameboard/server/client/style.css",
-		"/C/Users/William Lew/Desktop/vsa_gameboard/server/client/src/font_source.js",
-		"/C/Users/William Lew/Desktop/Visualizer/server/server.js",
-		"/C/Users/William Lew/.ssh/id_rsa.pub",
-		"/C/Users/William Lew/Desktop/Visualizer/client_vm/sample_s_json.txt",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/shader_source.js",
-		"/Users/wlew/Desktop/Visualizer/server/server.js",
-		"/Users/wlew/Desktop/Visualizer/server/client/index.html",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/geometry.js",
-		"/Users/wlew/Desktop/Visualizer/synopsis",
-		"/Users/wlew/Desktop/Visualizer/client_vm/sample_s_json.txt",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/engine.js",
-		"/Users/wlew/Desktop/Visualizer/client_vm/sb-show-deps",
-		"/Users/wlew/Desktop/Visualizer/server/client/src/network.js"
+		"/C/Users/William Lew/Desktop/no_tears/src/vector2.cpp"
 	],
 	"find":
 	{
@@ -988,6 +982,123 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"updateUniformBuffer",
+			"createTextureImages",
+			"texture",
+			"texSampler",
+			"textures",
+			"manipulator",
+			"shader",
+			"loadModel",
+			"failed to open file!",
+			"cube_",
+			"cube_'",
+			"loadModel",
+			"obj",
+			"obj_loader",
+			"imgui",
+			"VkContext",
+			"initializeRaytracingDescriptorSet",
+			"coordinateObjectBuffer",
+			"initializeRaytracingDescriptorSet",
+			"initializeCommandBuffer",
+			"initializeDescriptorSets",
+			"initializeShaderBindingTable",
+			"m_device",
+			"err",
+			"setClearValue",
+			"updateUniformBuffer",
+			"createGraphicsPipeline",
+			"framebuffer",
+			"VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL",
+			"copyBufferToImage",
+			"transitionImageLayout",
+			"endSingleTimeCommands",
+			"VkFramebufferCreateInfo",
+			"initializeFramebuffers",
+			"initializeSyncObjects",
+			"commandBuffer",
+			"initializeDescriptorSets",
+			"initializeSyncObjects",
+			"waitSemaphoreCount",
+			"vkQueueSubmit",
+			"m_queue",
+			"getQueue",
+			"UpdateSetContents",
+			"VkDescriptorBufferInfo",
+			"VkWriteDescriptorSet",
+			"VkImageSubresourceRange",
+			"swapChainImages",
+			"swapChainImageViews",
+			"initializeImageViews",
+			"m_backBuffer",
+			"currentImage",
+			"updateUniformBuffer",
+			"initializeCommandBuffer",
+			"VkImage",
+			"initializeCommandBuffer",
+			"frameBegin",
+			"initializeCommandBuffer",
+			"vkAcquireNextImageKHR",
+			"frameBegin",
+			"currentImage",
+			"updateUniformBuffer",
+			"VK_DESCRIPTOR_TYPE_STORAGE_IMAGE",
+			"createImage",
+			"VkImageView",
+			"updateRaytracingRenderTarget",
+			"initializeRaytracingDescriptorSet",
+			"swapChainImages",
+			"SetMaxRecursionDepth",
+			"updateRaytracingRenderTarget",
+			"commandBuffers",
+			"VK_IMAGE_LAYOUT_PRESENT_SRC_KHR",
+			"updateRaytracingRenderTarget",
+			"initializeCommandBuffer",
+			"vkWaitForFences",
+			"frameBegin",
+			"helloVulkan",
+			"cmdBuff",
+			"vkUpdateDescriptorSets",
+			"VkDescriptorBufferInfo",
+			"commandBuffer",
+			"helloVulkan",
+			"swapChainImages",
+			"m_backBuffer",
+			"backBuffer",
+			"VkImageSubresourceRange",
+			"renderPass",
+			"VkCtx.getDevice()",
+			"VkCtx.getPhysicalDevice()",
+			"initializeRaytracingPipeline",
+			"VkCtx.getDevice()",
+			"initializeRaytracingPipeline",
+			"VK_BUFFER_USAGE",
+			"VK_BUFFER_USAGE_STORAGE_BUFFER_BIT",
+			"vertexBuffer",
+			"vertexInfo",
+			"UniformBufferObject",
+			"m_uniformBuffer",
+			"m_vertex",
+			"createDescriptorSetLayout",
+			"vertexBuffer",
+			"VK_WHOLE_SIZE",
+			"VkCtx.getDevice()",
+			"vertex",
+			"initializeVertexBuffer",
+			"initializeDescriptorPool",
+			"initializeVertexBuffer",
+			"initializeDescriptorSets",
+			"VK_DESCRIPTOR_TYPE_STORAGE_BUFFER",
+			"VK_BUFFER_USAGE_STORAGE_BUFFER_BIT",
+			"initializeVertexBuffer",
+			"VK_BUFFER_USAGE_STORAGE_BUFFER_BIT",
+			"DESCRIPTOR_TYPE_STORAGE_BUFFER",
+			"VK_DESCRIPTOR_TYPE_STORAGE_BUFFER",
+			"vkUpdateDescriptorSets",
+			"VkWriteDescriptorSet",
+			"initializeDescriptorSetLayout",
+			"coordinateObjectBuffer",
 			"VkDescriptorBufferInfo",
 			"VkCtx.getDevice()",
 			"mSurface",
@@ -998,124 +1109,7 @@
 			"mTransferQueueFamilyIndex",
 			"mGraphicsQueueFamilyIndex",
 			"mComputeQueueFamilyIndex",
-			"priority",
-			"priority ",
-			"VkDeviceQueue",
-			"mPhysicalDevice",
-			"initializeCommandPool",
-			"commandPool",
-			"VkCtx.getDevice()",
-			"VkCtx.getQueue()",
-			"createGeometryInstances",
-			"VkCtx.getPhysicalDevice()",
-			"VkCtx.getDevice()",
-			"VkCtx.getPhysicalDevice()",
-			"VkCtx.getDevice()",
-			"create_info",
-			"enableValidationLayers",
-			"validationLayers",
-			"deviceExtensions",
-			"VK_NV_RAY_TRACING_EXTENSION_NAME",
-			"deviceExtensions",
-			"validationLayers",
-			"VK_KHR_SWAPCHAIN_EXTENSION_NAME",
-			"positionIndexBuffer",
-			"positionIndexBufferMemory",
-			"positionIndexBuffer",
-			"positionIndices",
-			"indices",
-			"vertexHolder",
-			"VertexHolder",
-			"operator",
-			"getAttributeDescriptions",
-			"normalVertexBuffer",
-			"positionVertexBuffer",
-			"positionStagingBuffer",
-			"getAttributeDescriptions",
-			"binding",
-			"vulkan_phong",
-			"Vulkan-Phong",
-			"beginSingleTimeCommands",
-			"m_uniformBuffer",
-			"uniform",
-			");\n",
-			"modelMatrix",
-			"coordinateObject",
-			"CameraManip",
-			"updateUniformBuffer",
-			"updateDescriptorSet",
-			"initializeRaytracingPipeline",
-			"createUniformBuffer",
-			"m_uniformBuffer",
-			"uniformBuffer",
-			"vkUpdateDescriptorSets",
-			"vkUpdateDescriptorSets()",
-			"vkUpdateDescriptorSets() ",
-			"frameIndex =",
-			"frameBegin",
-			"renderFrame",
-			"clearColor",
-			"ImGui_ImplGlfwVulkan_Render",
-			"setClearValue",
-			"m_clearValue",
-			"clearValue =",
-			"clearValue",
-			"m_",
-			"ImGui_ImplGlfwVulkan_Render",
-			"clearValue",
-			"m_device",
-			"VkCtx",
-			"cmdBuff",
-			"backBufferIndices",
-			"IMGUI_VK_QUEUED_FRAMES",
-			"backBufferIndices",
-			"m_backBufferIndices",
-			"getCurrentBackBufferView",
-			"cmdBuff",
-			"helloVulkan.m_",
-			"updateRaytracingRenderTarget",
-			"initializeShaderBindingTable",
-			"m_",
-			"initializeRaytracingPipeline",
-			"m_",
-			"initializeRaytracingPipeline",
-			"VkCtx.getDevice()",
-			"initializeRaytracingPipeline",
-			"initializeRaytracingDescriptorSet",
-			"createRaytracingDescriptorSet",
-			"create_info",
-			"VkCtx.getDevice()",
-			"m_",
-			"acceleration",
-			"as",
-			"VkCtx.getDevice()",
-			"m_",
-			"VkCtx.getDevice()",
-			"logicalDeviceframeIndex",
-			"VkCtx.getDevice()",
-			"m_frameIndex =",
-			"m_frameIndex",
-			"m_",
-			"VkCtx.getPhysicalDevice()",
-			"VkCtx.getDevice()",
-			">",
-			"Array",
-			"array",
-			"VkCtx.getPhysicalDevice()",
-			"VkCtx.getDevice()",
-			"copyBuffer",
-			"VkCtx.createBuffer",
-			"VkCtx.getDevice()",
-			"m_device",
-			"createBuffer",
-			"loadMod",
-			"initializeGraphicsPipeline",
-			"loadModel",
-			"createVertexBuffer",
-			"CreateBottomLevel",
-			"geometryinstance",
-			"initializeRayTracing",
-			"nv_helpers_vk"
+			"priority"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1138,56 +1132,59 @@
 			[
 				{
 					"buffer": 0,
-					"file": "project.sublime-project",
+					"file": "main.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2180,
+						"buffer_size": 11650,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								327,
-								327
+								7766,
+								7785
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 2769.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "src/engine.cpp",
+					"file": "src/hello_vulkan.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 67557,
+						"buffer_size": 46451,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								13097,
-								13097
+								25273,
+								25273
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C++.sublime-syntax"
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 3932.0,
+						"translation.y": 6965.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -1195,53 +1192,26 @@
 				},
 				{
 					"buffer": 2,
-					"file": "src/engine.h",
+					"file": "src/hello_vulkan.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6620,
+						"buffer_size": 4169,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4254,
-								4268
+								3204,
+								3204
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
 							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 1326.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "shaders/phong.vert",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 787,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								787,
-								787
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -1251,32 +1221,33 @@
 					"type": "text"
 				},
 				{
-					"buffer": 4,
-					"file": "shaders/phong.frag",
+					"buffer": 3,
+					"file": "src/obj_loader.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1270,
+						"buffer_size": 5248,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								74,
-								74
+								1516,
+								1516
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Text/Plain text.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 351.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
@@ -1319,7 +1290,7 @@
 	},
 	"output.exec":
 	{
-		"height": 118.0
+		"height": 84.0
 	},
 	"output.find_results":
 	{
@@ -1338,6 +1309,14 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"ma",
+				"main.cpp"
+			],
+			[
+				"eng",
+				"src\\engine.cpp"
+			],
 			[
 				"pro",
 				"project.sublime-project"
@@ -1361,10 +1340,6 @@
 			[
 				"test",
 				"shaders\\test.frag"
-			],
-			[
-				"eng",
-				"src\\engine.cpp"
 			],
 			[
 				"g",
@@ -1714,8 +1689,8 @@
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": false,
-	"side_bar_width": 122.0,
+	"side_bar_visible": true,
+	"side_bar_width": 148.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

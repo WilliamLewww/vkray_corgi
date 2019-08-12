@@ -143,7 +143,8 @@ int main(int argc, char** argv)
 
 	// Setup camera
 	CameraManip.setWindowSize(g_winWidth, g_winHeight);
-	CameraManip.setLookat(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	CameraManip.setLookat(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	CameraManip.wheel(15.0f);
 
 	// Setup Vulkan
 	if(!glfwVulkanSupported())
@@ -210,7 +211,7 @@ int main(int argc, char** argv)
 	}
 
 	HelloVulkan helloVulkan;
-	helloVulkan.loadModel("res/cube_multi.obj");
+	helloVulkan.loadModel("res/models/13467_Cardigan_Welsh_Corgi_v1_L3.obj");
 	helloVulkan.createDescriptorSetLayout();
 	helloVulkan.createGraphicsPipeline(
 			{static_cast<uint32_t>(g_winWidth), static_cast<uint32_t>(g_winHeight)});
