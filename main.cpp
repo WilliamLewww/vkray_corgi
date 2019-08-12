@@ -152,8 +152,9 @@ int main(int argc, char** argv)
     return 1;
   }
   VkCtx.setupVulkan(window, true,
-                    {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-                     VK_KHR_MAINTENANCE3_EXTENSION_NAME});
+                    {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                     VK_NV_RAY_TRACING_EXTENSION_NAME,
+                     VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME});
 
   // Setup Dear ImGui binding
   if(1 == 1)
@@ -209,13 +210,21 @@ int main(int argc, char** argv)
   }
 
   HelloVulkan helloVulkan;
-  helloVulkan.loadModel("res/corgi.obj");
+  helloVulkan.loadModel("res/cube_multi.obj");
   helloVulkan.createDescriptorSetLayout();
   helloVulkan.createGraphicsPipeline(
       {static_cast<uint32_t>(g_winWidth), static_cast<uint32_t>(g_winHeight)});
   helloVulkan.createUniformBuffer();
   helloVulkan.updateDescriptorSet();
 
+  helloVulkan.initRayTracing();
+  helloVulkan.createGeometryInstances();
+  helloVulkan.createAccelerationStructures();
+  helloVulkan.createRaytracingDescriptorSet();
+  helloVulkan.createRaytracingPipeline();
+  helloVulkan.createShaderBindingTable();
+
+  bool use_raster_render = true;
 
   ImVec4 clear_color = ImVec4(1, 1, 1, 1.00f);
 
@@ -252,6 +261,9 @@ int main(int argc, char** argv)
                         reinterpret_cast<float*>(
                             &clear_color));  // Edit 3 floats representing a color
 
+      ImGui::Checkbox("Raster mode",
+  		&use_raster_render); // Switch between raster and ray tracing
+
 
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                   1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -274,7 +286,7 @@ int main(int argc, char** argv)
     VkCtx.frameBegin();
     VkCommandBuffer cmdBuff = VkCtx.getCommandBuffer()[VkCtx.getFrameIndex()];
 
-    if(1 == 1)
+    if(use_raster_render)
     {
       VkCtx.beginRenderPass();
       vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, helloVulkan.m_graphicsPipeline);
@@ -290,6 +302,40 @@ int main(int argc, char** argv)
     }
     else
     {
+    	VkClearValue clearColor = {0.0f, 0.5f, 0.0f, 1.0f};
+
+		VkImageSubresourceRange subresourceRange;
+		subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseMipLevel   = 0;
+		subresourceRange.levelCount     = 1;
+		subresourceRange.baseArrayLayer = 0;
+		subresourceRange.layerCount     = 1;
+
+		nv_helpers_vk::imageBarrier(cmdBuff, VkCtx.getCurrentBackBuffer(), subresourceRange, 0,
+		                          VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		                          VK_IMAGE_LAYOUT_GENERAL);
+
+		helloVulkan.updateRaytracingRenderTarget(VkCtx.getCurrentBackBufferView());
+
+		VkCtx.beginRenderPass();
+
+		vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, helloVulkan.m_rtPipeline);
+
+		vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
+		                      helloVulkan.m_rtPipelineLayout, 0, 1, &helloVulkan.m_rtDescriptorSet,
+		                      0, nullptr);
+
+		VkDeviceSize rayGenOffset   = helloVulkan.m_sbtGen.GetRayGenOffset();
+		VkDeviceSize missOffset     = helloVulkan.m_sbtGen.GetMissOffset();
+		VkDeviceSize missStride     = helloVulkan.m_sbtGen.GetMissEntrySize();
+		VkDeviceSize hitGroupOffset = helloVulkan.m_sbtGen.GetHitGroupOffset();
+		VkDeviceSize hitGroupStride = helloVulkan.m_sbtGen.GetHitGroupEntrySize();
+
+		vkCmdTraceRaysNV(cmdBuff, helloVulkan.m_shaderBindingTableBuffer, rayGenOffset,
+		                helloVulkan.m_shaderBindingTableBuffer, missOffset, missStride,
+		                helloVulkan.m_shaderBindingTableBuffer, hitGroupOffset, hitGroupStride,
+		                VK_NULL_HANDLE, 0, 0, helloVulkan.m_framebufferSize.width,
+		                helloVulkan.m_framebufferSize.height, 1);
     }
 
     {
