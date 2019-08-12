@@ -133,6 +133,8 @@ void HelloVulkan::createGeometryInstances()
 	// The importer always imports the geometry as a single instance, without a
 	// transform. Using a more complex importer, this should be adapted.
 	glm::mat4x4 mat = glm::mat4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+	mat = glm::rotate(mat, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	
 	m_geometryInstances.push_back(
 			{m_vertexBuffer, m_nbVertices, 0, m_indexBuffer, m_nbIndices, 0, mat});
 }
