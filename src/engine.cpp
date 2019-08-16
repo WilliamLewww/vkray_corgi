@@ -25,6 +25,7 @@ void Engine::initialize() {
 	initializeLogicalDevice();
 	initializeSurface();
 	initializeCommandBuffers();
+	initializeDescriptorPool();
 }
 
 void Engine::initializeWindow() {
@@ -219,6 +220,31 @@ void Engine::initializeCommandBuffers() {
 		if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &renderCompleteSemaphore[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create semaphore!");
 		}
+	}
+}
+
+void Engine::initializeDescriptorPool() {
+	VkDescriptorPoolSize poolSize[] = {
+		//{VK_DESCRIPTOR_TYPE_SAMPLER, 0},
+		{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+		//{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0},
+		//{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0},
+		//{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 0},
+		//{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 0},
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+		//{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0},
+		//{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 0},
+		//{VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0}
+	};
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	poolInfo.maxSets = 1000;
+	poolInfo.poolSizeCount = _countof(poolSize);
+	poolInfo.pPoolSizes = poolSize;
+	if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+
 	}
 }
 

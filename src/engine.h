@@ -29,12 +29,15 @@ private:
 	VkSemaphore presentCompleteSemaphore[VK_QUEUED_FRAMES];
 	VkSemaphore renderCompleteSemaphore[VK_QUEUED_FRAMES];
 
+	VkDescriptorPool descriptorPool;
+
 	void initializeWindow();
 	void initializeInstance();
 	void initializePhysicalDevice();
 	void initializeLogicalDevice();
 	void initializeSurface();
 	void initializeCommandBuffers();
+	void initializeDescriptorPool();
 
 	bool checkDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions);
 public:
