@@ -22,7 +22,12 @@ private:
 	VkQueue graphicsQueue;
 
 	VkSurfaceFormatKHR surfaceFormat;
+	VkImageSubresourceRange imageRange;
 	VkPresentModeKHR presentMode;
+
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
 
   	VkCommandPool commandPool[VK_QUEUED_FRAMES];
 	VkCommandBuffer commandBuffer[VK_QUEUED_FRAMES];
@@ -38,7 +43,9 @@ private:
 	int frameBufferWidth = 0; 
 	int frameBufferHeight = 0;
 	uint32_t backBufferCount = 0;
-	VkImage backBuffer[VK_MAX_POSSIBLE_BACK_BUFFERS] = {};
+	VkImage backBuffer[VK_MAX_POSSIBLE_BACK_BUFFERS];
+	VkImageView backBufferView[VK_MAX_POSSIBLE_BACK_BUFFERS];
+	VkFramebuffer framebuffer[VK_MAX_POSSIBLE_BACK_BUFFERS];
 
 	void initializeWindow();
 	void initializeInstance();
@@ -50,6 +57,18 @@ private:
 
 	void initializeSwapchain();
 	void initializeRenderPass();
+	void initializeImageViews();
+	void initializeDepthResources();
+	void initializeFrameBuffer();
+
+	VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 public:
 	void initialize();
 	void start();
