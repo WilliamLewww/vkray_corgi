@@ -22,10 +22,11 @@ void Engine::initialize() {
 	initializeWindow();
 	initializeInstance();
 	initializePhysicalDevice();
-	initializeLogicalDevice();
 	initializeSurface();
+	initializeLogicalDevice();
 	initializeCommandBuffers();
 	initializeDescriptorPool();
+	initializeSwapchain();
 }
 
 void Engine::initializeWindow() {
@@ -95,6 +96,9 @@ void Engine::initializeLogicalDevice() {
 		if (queueFamilies[x].queueCount > 0 && graphicsQueueIndex == -1 && queueFamilies[x].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			graphicsQueueIndex = x;
 		}
+
+		VkBool32 presentSupport = false;
+    	vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, x, surface, &presentSupport);
 	}
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -244,7 +248,57 @@ void Engine::initializeDescriptorPool() {
 	poolInfo.poolSizeCount = _countof(poolSize);
 	poolInfo.pPoolSizes = poolSize;
 	if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor pool!");
+	}
+}
 
+void Engine::initializeSwapchain() {
+	VkSwapchainCreateInfoKHR info = {};
+	info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	info.surface = surface;
+	info.imageFormat = surfaceFormat.format;
+	info.imageColorSpace = surfaceFormat.colorSpace;
+	info.imageArrayLayers = 1;
+	info.imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+	info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	info.clipped = VK_TRUE;
+	info.oldSwapchain = nullptr;
+	VkSurfaceCapabilitiesKHR cap;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &cap);
+
+	if(cap.maxImageCount > 0) {
+		info.minImageCount = (cap.minImageCount + 2 < cap.maxImageCount) ? (cap.minImageCount + 2) : cap.maxImageCount;
+	}
+	else {
+		info.minImageCount = cap.minImageCount + 2;
+	}
+
+	info.minImageCount = 2;
+
+	if(cap.currentExtent.width == 0xffffffff) {
+		frameBufferWidth = SCREENWIDTH;
+		frameBufferHeight = SCREENHEIGHT;
+		info.imageExtent.width = frameBufferWidth;
+		info.imageExtent.height = frameBufferHeight;
+	}
+	else {
+		frameBufferWidth = cap.currentExtent.width;
+		frameBufferHeight = cap.currentExtent.height;
+		info.imageExtent.width = frameBufferWidth;
+		info.imageExtent.height = frameBufferHeight;
+	}
+
+	if (vkCreateSwapchainKHR(logicalDevice, &info, nullptr, &swapchain) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create swapchain!");
+	}
+	if (vkGetSwapchainImagesKHR(logicalDevice, swapchain, &backBufferCount, nullptr) != VK_SUCCESS) {
+		throw std::runtime_error("failed to get swapchain images!");
+	}
+	if (vkGetSwapchainImagesKHR(logicalDevice, swapchain, &backBufferCount, backBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to get swapchain images!");
 	}
 }
 

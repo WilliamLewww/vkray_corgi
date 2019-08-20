@@ -6,6 +6,7 @@
 #include <vector>
 
 #define VK_QUEUED_FRAMES 2
+#define VK_MAX_POSSIBLE_BACK_BUFFERS 16
 
 class Engine {
 private:
@@ -16,7 +17,7 @@ private:
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
-
+	
 	uint32_t graphicsQueueIndex;
 	VkQueue graphicsQueue;
 
@@ -31,6 +32,13 @@ private:
 
 	VkDescriptorPool descriptorPool;
 
+	VkSwapchainKHR swapchain;
+
+	int frameBufferWidth = 0; 
+	int frameBufferHeight = 0;
+	uint32_t backBufferCount = 0;
+	VkImage backBuffer[VK_MAX_POSSIBLE_BACK_BUFFERS] = {};
+
 	void initializeWindow();
 	void initializeInstance();
 	void initializePhysicalDevice();
@@ -38,6 +46,8 @@ private:
 	void initializeSurface();
 	void initializeCommandBuffers();
 	void initializeDescriptorPool();
+
+	void initializeSwapchain();
 
 	bool checkDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions);
 public:
