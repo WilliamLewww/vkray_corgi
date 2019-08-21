@@ -37,6 +37,8 @@ void Engine::initialize() {
 	initializeFrameBuffer();
 
 	initializeModel("res/models/13467_Cardigan_Welsh_Corgi_v1_L3.obj");
+	initializeDescriptorSetLayout();
+	initializeUniformBuffer();
 }
 
 void Engine::initializeWindow() {
@@ -566,6 +568,44 @@ void Engine::initializeTextureImages(const std::vector<std::string>& textures) {
 		textureImageViewList.push_back(createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
 		textureSamplerList.push_back(createTextureSampler());
 	}
+}
+
+void Engine::initializeDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.pImmutableSamplers = nullptr;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkDescriptorSetLayoutBinding uboMatColorLayoutBinding = {};
+	uboMatColorLayoutBinding.binding = 1;
+	uboMatColorLayoutBinding.descriptorCount = 1;
+	uboMatColorLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	uboMatColorLayoutBinding.pImmutableSamplers = nullptr;
+	uboMatColorLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+	samplerLayoutBinding.binding = 2;
+	samplerLayoutBinding.descriptorCount = static_cast<uint32_t>(textureSamplerList.size());
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, uboMatColorLayoutBinding, samplerLayoutBinding};
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
+}
+
+void Engine::initializeUniformBuffer() {
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
 }
 
 void Engine::start() {

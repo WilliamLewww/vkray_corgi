@@ -23,6 +23,17 @@ struct Vertex {
 	static auto getAttributeDescriptions();
 };
 
+struct UniformBufferObject {
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::mat4 modelIT;
+	
+	// #VKRay
+	glm::mat4 viewInverse;
+	glm::mat4 projInverse;
+};
+
 class Engine {
 private:
 	GLFWwindow* window;
@@ -61,6 +72,8 @@ private:
 	VkImage backBuffer[VK_MAX_POSSIBLE_BACK_BUFFERS];
 	VkImageView backBufferView[VK_MAX_POSSIBLE_BACK_BUFFERS];
 	VkFramebuffer framebuffer[VK_MAX_POSSIBLE_BACK_BUFFERS];
+
+	VkDescriptorSetLayout descriptorSetLayout;
 
 	uint32_t indexCount;
 	uint32_t vertexCount;
@@ -101,6 +114,9 @@ private:
 	void initializeIndexBuffer(const std::vector<uint32_t>& indices);
 	void initializeMaterialBuffer(const std::vector<MatrialObj>& materials);
 	void initializeTextureImages(const std::vector<std::string>& textures);
+
+	void initializeDescriptorSetLayout();
+	void initializeUniformBuffer();
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
