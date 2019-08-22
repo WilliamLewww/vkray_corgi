@@ -34,6 +34,16 @@ struct UniformBufferObject {
 	glm::mat4 projInverse;
 };
 
+struct GeometryInstance {
+	VkBuffer vertexBuffer;
+	uint32_t vertexCount;
+	VkDeviceSize vertexOffset;
+	VkBuffer indexBuffer;
+	uint32_t indexCount;
+	VkDeviceSize indexOffset;
+	glm::mat4x4 transform;
+};
+
 class Engine {
 private:
 	GLFWwindow* window;
@@ -95,6 +105,9 @@ private:
 	std::vector<VkImageView> textureImageViewList;
 	std::vector<VkSampler> textureSamplerList;
 
+	VkPhysicalDeviceRayTracingPropertiesNV raytracingProperties;
+	std::vector<GeometryInstance> geometryInstances;
+
 	void initializeWindow();
 	void initializeInstance();
 	void initializePhysicalDevice();
@@ -117,6 +130,9 @@ private:
 
 	void initializeDescriptorSetLayout();
 	void initializeUniformBuffer();
+
+	void initializeRayTracing();
+	void initializeGeometryInstances();
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);

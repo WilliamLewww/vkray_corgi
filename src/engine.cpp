@@ -39,6 +39,9 @@ void Engine::initialize() {
 	initializeModel("res/models/13467_Cardigan_Welsh_Corgi_v1_L3.obj");
 	initializeDescriptorSetLayout();
 	initializeUniformBuffer();
+
+	initializeRayTracing();
+	initializeGeometryInstances();
 }
 
 void Engine::initializeWindow() {
@@ -606,6 +609,25 @@ void Engine::initializeDescriptorSetLayout() {
 void Engine::initializeUniformBuffer() {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
+}
+
+void Engine::initializeRayTracing() {
+	raytracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+	raytracingProperties.pNext = nullptr;
+	raytracingProperties.maxRecursionDepth = 0;
+	raytracingProperties.shaderGroupHandleSize = 0;
+	VkPhysicalDeviceProperties2 props;
+	props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	props.pNext = &raytracingProperties;
+	props.properties = {};
+	vkGetPhysicalDeviceProperties2(physicalDevice, &props);
+}
+
+void Engine::initializeGeometryInstances() {
+	glm::mat4x4 mat = glm::mat4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+	mat = glm::rotate(mat, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+	geometryInstances.push_back({vertexBuffer, vertexCount, 0, indexBuffer, indexCount, 0, mat});
 }
 
 void Engine::start() {
